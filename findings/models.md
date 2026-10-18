@@ -185,7 +185,9 @@ from model year 2024 onwards" and "not dependent on the webOS version".
     (same strings, so it's the same build). Both kernels define the histogram controls. Their product profiles
     differ only in model-year fields, a few audio/broadcast/camera extras and `hdmi.supportQmsVrr`.
   - **webOS 11:** the supported G4 and the unsupported C3 ship identical `libvtcapture` strings and the same
-    histogram path. Their device profiles differ only in
+    histogram path.
+- **Getting it onto a C3** needs no firmware change: the bridge (`color-info-miner`) auto-starts on Hue-app install
+  with no model check, so the block is purely LG's store catalog. See `huesync_c3_backport.md`. Their device profiles differ only in
   model-year, multi-view, sign-language-avatar and audio fields.
 - **The same holds for the Realtek B line.** On webOS 10, the supported B4 and the unsupported B2/B3 share an
   identical `libvtcapture`. All three kernels implement the histogram controls.

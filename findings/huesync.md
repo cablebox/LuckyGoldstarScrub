@@ -57,6 +57,10 @@ See `qms.md` for how the images were obtained. Nothing was run on a TV.
 - Static analysis can't prove the C3's histogram hardware returns data as good as the 2024 chips' (bin count, color
   vs luma, latency).
 
+See `huesync_c3_backport.md` for what getting Hue Sync onto a C3 actually requires: nothing in the firmware (it is
+already complete and auto-enables on app install), only LG's store catalog, so the realistic route is the open-source
+Hyperion stack.
+
 **CX verdict:** the CX genuinely lacks the histogram API and the Hue bridge service, and its picture engine exposes
 only brightness statistics. The histogram API is software that could in principle be written. [Inference] It
 probably relies on a color-statistics hardware block the CX may not have. The CX's frame capture works but refuses
