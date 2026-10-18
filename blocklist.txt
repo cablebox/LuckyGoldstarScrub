@@ -1,0 +1,176 @@
+# LG OLED55CXPUA (webOS 5.6.2, fw 04.64.00, US/ATSC) - DNS blocklist
+# Built only from hostnames found in the firmware by static analysis.
+# Lines marked "(template)" are US expansions of a template the firmware fills in at runtime:
+#   default-type sdx domains -> "<CC>.<domain>", where CC comes from the sdx HOST header (e.g. "KR.lgtvsdp.com")
+#   ric-type domains -> "<env><ric>.<domain>"; overlay apps hard-code ric "aic" (see endpoints.md)
+# Hard-coded IPs (156.147.69.32 update, 165.244.62.249 remotediag) cannot be blocked by DNS.
+# See endpoints.md for what each host does and what breaks when it is blocked.
+
+# Safe to block: ads/ACR/telemetry
+# --- ACR (Alphonso SDK in acr2/libas.so, overlay ads in libaos.so) ---
+0.0.0.0 prov-lg.alphonso.tv
+0.0.0.0 eulacheck.alphonso.tv
+0.0.0.0 config-overlay-ads.alphonso.tv
+# --- LG ACR / commercial overlays (overlaycontainer*, fooddelivery* apps; requiredEULA acrOn) ---
+0.0.0.0 videoacr.lgtvcommon.com
+0.0.0.0 aic.videoacr.lgtvcommon.com
+0.0.0.0 fooddelivery.lgtvcommon.com
+0.0.0.0 aic.fooddelivery.lgtvcommon.com
+# --- LG advertising (admanager; sends IFA advertising ID) ---
+0.0.0.0 info.lgsmartad.com
+0.0.0.0 us.info.lgsmartad.com
+# --- LG promotional nudges / recommendations ---
+0.0.0.0 nudge.lgtvcommon.com
+0.0.0.0 aic.nudge.lgtvcommon.com
+0.0.0.0 recommend.lgtvcommon.com
+0.0.0.0 aic.recommend.lgtvcommon.com
+# --- LG telemetry / crash / viewing logs ---
+0.0.0.0 rdx2.lgtvsdp.com
+0.0.0.0 us.rdx2.lgtvsdp.com
+0.0.0.0 ibsstat.lgappstv.com
+0.0.0.0 us.ibsstat.lgappstv.com
+0.0.0.0 lgtvbrowser.lgtvsdp.com
+# --- LG remote diagnostics (remotediag) ---
+0.0.0.0 rone-aic.lge.com
+0.0.0.0 rone-tv-aic.lge.com
+0.0.0.0 rone-kic.lge.com
+0.0.0.0 rone-tv-kic.lge.com
+0.0.0.0 rone-eic.lge.com
+0.0.0.0 rone-tv-eic.lge.com
+0.0.0.0 rone-saic.lge.com
+0.0.0.0 rone-tv-saic.lge.com
+0.0.0.0 rone-tv-cic.lge.com
+# --- LG 365 Care (commercial remote monitoring; Azure IoT) ---
+0.0.0.0 download.365care.lge.com
+0.0.0.0 spm-api-kr.azurewebsites.net
+0.0.0.0 spm-api-dev.azurewebsites.net
+0.0.0.0 qv25-api-dev.azurewebsites.net
+0.0.0.0 t3c-api-dev.azurewebsites.net
+0.0.0.0 uloga-info.azurewebsites.net
+0.0.0.0 spm-ihub-dev.azure-devices.net
+# --- QA/dev LG servers that production builds should never need ---
+0.0.0.0 qt2-kic.service.lgtvcommon.com
+0.0.0.0 he-kr-qa-ai.lgthinq.com
+0.0.0.0 snu-dev.lge.com
+# --- Amazon telemetry ---
+0.0.0.0 device-metrics-us-2.amazon.com
+0.0.0.0 qf56fmtf9e.execute-api.us-east-1.amazonaws.com
+# --- Browser IP geolocation (third party, plain HTTP) ---
+0.0.0.0 www.geoplugin.net
+# --- China-region voice stacks (Dangbei/DUI, Xiaomi), not used on US units ---
+0.0.0.0 auth.dui.ai
+0.0.0.0 tts.dui.ai
+0.0.0.0 dds.dui.ai
+0.0.0.0 lgjsapi.hezijia.com
+0.0.0.0 lgvoiceweb.qun7.com
+0.0.0.0 api.tv.duokanbox.com
+
+# Optional: blocks updates/features (read notes)
+# --- Firmware update (blocking stops update checks/downloads) ---
+0.0.0.0 snu.lge.com
+0.0.0.0 su.lge.com
+0.0.0.0 su-ssl.lge.com
+0.0.0.0 nsu.lge.com
+# --- LG core platform: account, EULA, app store, IAP, country detection ---
+0.0.0.0 lgtvsdp.com
+0.0.0.0 us.lgtvsdp.com
+0.0.0.0 smartshare.lgtvsdp.com
+0.0.0.0 us.smartshare.lgtvsdp.com
+0.0.0.0 ibs.lgappstv.com
+0.0.0.0 us.ibs.lgappstv.com
+0.0.0.0 lgrecommends.lgappstv.com
+0.0.0.0 us.lgrecommends.lgappstv.com
+0.0.0.0 www.lgappstv.com
+0.0.0.0 redirect.lgsmartplatform.com
+# --- LG home/content services ---
+0.0.0.0 homeprv.lgtvcommon.com
+0.0.0.0 aic.homeprv.lgtvcommon.com
+0.0.0.0 cdpsvc.lgtvcommon.com
+0.0.0.0 aic.cdpsvc.lgtvcommon.com
+0.0.0.0 cpv.lgtvcommon.com
+0.0.0.0 aic.cpv.lgtvcommon.com
+0.0.0.0 service.lgtvcommon.com
+0.0.0.0 aic.service.lgtvcommon.com
+0.0.0.0 wau.lgtvcommon.com
+0.0.0.0 aic.wau.lgtvcommon.com
+0.0.0.0 netflixvoice.lgtvcommon.com
+0.0.0.0 aic.netflixvoice.lgtvcommon.com
+0.0.0.0 ngfts.lge.com
+0.0.0.0 aic-ngfts.lge.com
+# --- Connectivity check (see note: TV may report "no internet") ---
+0.0.0.0 lgtvonline.lge.com
+# --- LG IoT / ThinQ / sports alerts ---
+0.0.0.0 api.lgtviot.com
+0.0.0.0 aic.api.lgtviot.com
+0.0.0.0 aic.lgtviot.com
+0.0.0.0 push.lgtviot.com
+0.0.0.0 aic.push.lgtviot.com
+0.0.0.0 sports.lgtviot.com
+0.0.0.0 aic.sports.lgtviot.com
+0.0.0.0 common.lgthinq.com
+0.0.0.0 lss.lgthinq.com
+0.0.0.0 kr.lgeapi.com
+# --- Universal remote / connected-device recognition (UEI QuickSet) ---
+0.0.0.0 msolookup.quicksetcloud.com
+0.0.0.0 rcl.ueiquickset.com
+# --- LG voice recognition (Nuance) ---
+0.0.0.0 lgtv2020-ncs-engusa-gwssl.nuancemobility.net
+0.0.0.0 lgtv2020-ncs-spaxla-gwssl.nuancemobility.net
+0.0.0.0 lgtv2020-ncs-fracan-gwssl.nuancemobility.net
+0.0.0.0 lgtv2020-ncs-araare-gwssl.nuancemobility.net
+0.0.0.0 lgtv2020-ncs-araegy-gwssl.nuancemobility.net
+0.0.0.0 lgtv2020-ncs-arasau-gwssl.nuancemobility.net
+0.0.0.0 lgtv2020-ncs-cescze-gwssl.nuancemobility.net
+0.0.0.0 lgtv2020-ncs-cmnchn-gwssl.nuancemobility.net
+0.0.0.0 lgtv2020-ncs-cmntwn-gwssl.nuancemobility.net
+0.0.0.0 lgtv2020-ncs-dandnk-gwssl.nuancemobility.net
+0.0.0.0 lgtv2020-ncs-deudeu-gwssl.nuancemobility.net
+0.0.0.0 lgtv2020-ncs-ellgrc-gwssl.nuancemobility.net
+0.0.0.0 lgtv2020-ncs-engaus-gwssl.nuancemobility.net
+0.0.0.0 lgtv2020-ncs-enggbr-gwssl.nuancemobility.net
+0.0.0.0 lgtv2020-ncs-engind-gwssl.nuancemobility.net
+0.0.0.0 lgtv2020-ncs-finfin-gwssl.nuancemobility.net
+0.0.0.0 lgtv2020-ncs-frafra-gwssl.nuancemobility.net
+0.0.0.0 lgtv2020-ncs-hebisr-gwssl.nuancemobility.net
+0.0.0.0 lgtv2020-ncs-hrvhrv-gwssl.nuancemobility.net
+0.0.0.0 lgtv2020-ncs-hunhun-gwssl.nuancemobility.net
+0.0.0.0 lgtv2020-ncs-indidn-gwssl.nuancemobility.net
+0.0.0.0 lgtv2020-ncs-itaita-gwssl.nuancemobility.net
+0.0.0.0 lgtv2020-ncs-jpnjpn-gwssl.nuancemobility.net
+0.0.0.0 lgtv2020-ncs-korkor-gwssl.nuancemobility.net
+0.0.0.0 lgtv2020-ncs-nldnld-gwssl.nuancemobility.net
+0.0.0.0 lgtv2020-ncs-nornor-gwssl.nuancemobility.net
+0.0.0.0 lgtv2020-ncs-polpol-gwssl.nuancemobility.net
+0.0.0.0 lgtv2020-ncs-porbra-gwssl.nuancemobility.net
+0.0.0.0 lgtv2020-ncs-porprt-gwssl.nuancemobility.net
+0.0.0.0 lgtv2020-ncs-ronrou-gwssl.nuancemobility.net
+0.0.0.0 lgtv2020-ncs-rusrus-gwssl.nuancemobility.net
+0.0.0.0 lgtv2020-ncs-slksvk-gwssl.nuancemobility.net
+0.0.0.0 lgtv2020-ncs-spaesp-gwssl.nuancemobility.net
+0.0.0.0 lgtv2020-ncs-sweswe-gwssl.nuancemobility.net
+0.0.0.0 lgtv2020-ncs-thatha-gwssl.nuancemobility.net
+0.0.0.0 lgtv2020-ncs-turtur-gwssl.nuancemobility.net
+0.0.0.0 lgtv2020-ncs-ukrukr-gwssl.nuancemobility.net
+0.0.0.0 lgtv2020-ncs-vievnm-gwssl.nuancemobility.net
+0.0.0.0 lgtv2020-ncs-yuechn-gwssl.nuancemobility.net
+0.0.0.0 lgtv2020-ncs-zlmmys-gwssl.nuancemobility.net
+# --- Built-in Amazon Alexa ---
+0.0.0.0 alexa.na.gateway.devices.a2z.com
+0.0.0.0 api.amazonalexa.com
+0.0.0.0 uj1m60ida4.execute-api.us-east-1.amazonaws.com
+0.0.0.0 an5wuzatha.execute-api.us-east-1.amazonaws.com
+0.0.0.0 a1xx3jgjdgpl39-ats.iot.us-east-1.amazonaws.com
+0.0.0.0 d2na8397m465mh.cloudfront.net
+0.0.0.0 piefs-pimms.amazonpmi.com
+# --- Built-in Google Assistant (accounts.google.com is left out on purpose, see notes) ---
+0.0.0.0 embeddedassistant.googleapis.com
+# --- DRM ---
+0.0.0.0 lge.perserv.seacert.com
+0.0.0.0 public-ott-nodrm.verimatrix.com
+# --- Third-party content used by built-in UI ---
+0.0.0.0 api.accuweather.com
+0.0.0.0 images.sports.gracenote.com
+0.0.0.0 akamai-b.cdn.cddbp.net
+# --- Misc ---
+0.0.0.0 time.bora.net
+0.0.0.0 connectivitycheck.android.com
