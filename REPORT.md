@@ -21,11 +21,13 @@ extracted rootfs.
 | `findings/telemetry.md` | sdx cloud broker, crash and analytics uploads, viewing logs, ads, voice, LAN exposure |
 | `findings/endpoints.md` / `endpoints_raw.tsv` | Every server the firmware can contact, sorted by purpose |
 | `findings/versions.md` | Component versions, CA bundle, debug leftovers |
+| `findings/qms.md` | Quick Media Switching: how the C3/C4 implement it and why it can't be backported to the CX |
 | `blocklist.txt` | Hosts-format DNS blocklist: a "safe" section and an "optional" section |
 | `scripts/50scrub` | Boot script for a rooted TV that applies the changes below |
 | `scripts/60launch` | Boot script for a rooted TV that applies the launch-time changes (`findings/launch.md`) |
 | `scripts/launchtime` | Measures an app's launch time on the TV |
 | `scripts/extract.sh` | Reproduces the download, decryption and extraction |
+| `scripts/lpunpack.py`, `scripts/edids.py` | Unpack an Android-style "super" partition (2024+ firmware); decode the EDIDs built into a firmware |
 
 ---
 
@@ -186,6 +188,7 @@ false`), so there is no always-listening path.
 
 ## 4. Other findings
 
+- **Quick Media Switching can't be backported** (`findings/qms.md`). On the C3/C4 it runs from a feature flag down through the EDID writer, a mode-change callback and the kernel's HDMI 2.1 receiver. The CX kernel has only leftover status fields, the kernel can't be replaced, and LG left even the 2022 C2 platform off.
 - **Stale security stack** (`findings/versions.md`):
   - The image was built in 2026 but the userland dates from 2017–2018: kernel 4.4.84, OpenSSL 1.0.2p, curl 7.61,
     **Chromium 68**, Node 8.12, connman 1.35, wpa_supplicant 2.6.
