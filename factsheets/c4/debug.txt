@@ -1,0 +1,14 @@
+etc/systemd/system/scripts/webapp-mgr.sh
+etc/palm/override.bson
+usr/palm/services/com.palm.service.devmode:
+devmode_service.js
+package.json
+pub.pem
+services.json
+ssh
+
+usr/share/remotediag:
+device.pem
+server.pem
+etc/udev/rules.d/86-audiod.rules
+etc/udev/rules.d/90-internal-bt.rules

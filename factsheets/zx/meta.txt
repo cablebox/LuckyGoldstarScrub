@@ -1,0 +1,9 @@
+dir: 04.64.00.01-HE_DTV_W20K_AFADATAA
+Rockhopper release 5.6.2-21 (jhericurl-jimna)
+ID="starfish"
+NAME="webOS TV"
+VERSION="5.6.2"
+VERSION_ID="5.6.2"
+PRETTY_NAME="webOS TV 5.6.2"
+Linux version 4.4.84-219.jcl4tvmr.6 (oe-user@oe-host) (gcc version 8.2.0 (GCC) ) #1 SMP PREEMPT Tue Apr 21 17:37:35 UTC 2026
+bsppart-atsc.pak.unsquashfs fonts.pak.unsquashfs kernel.pak kernel.pak.unlz4 license.pak.unsquashfs logo.pak.unlz4 otncabi-atsc.pak.unsquashfs otycabi-atsc.pak.unsquashfs partinfo.pak partinfo.txt rootfs.pak.unsquashfs swue.pak.unsquashfs 

@@ -1,0 +1,19 @@
+     34 "supportQmsVrr" : false
+     16 "supportQmsVrr" : true
+      8 "supportQmsVrr": false
+      7 "supportQmsVrr": true
+usr/sbin/eim: 5
+usr/sbin/extinput-integration: 3
+usr/lib/libhdmi-conn-protocol.so.1: 4
+usr/lib/libhdmi-conn-protocol.so.1.0.0: 4
+kernel 'QMS_FSM': 7
+kernel 'qms_handler': 5
+kernel 'EM QMS': 0
+kernel 'QMS BaseRate': 0
+kernel 'Next TFR': 0
+kernel 'MConst_Zero': 0
+kernel 'FORCE_QMS_MODE': 0
+kernel 'QMS_EM_TIMEOUT': 0
+kernel 'EM VrrRcvTime': 0
+kernel 'ALLM': 7
+kernel 'FRL': 75

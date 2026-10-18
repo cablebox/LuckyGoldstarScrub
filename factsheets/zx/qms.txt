@@ -1,0 +1,13 @@
+usr/sbin/eim: 0
+usr/sbin/extinput-integration: 0
+usr/lib/libhdmi-conn-protocol.so.1: 0
+usr/lib/libhdmi-conn-protocol.so.1.0.0: 0
+kernel 'EM QMS': 0
+kernel 'QMS BaseRate': 0
+kernel 'Next TFR': 0
+kernel 'MConst_Zero': 0
+kernel 'FORCE_QMS_MODE': 0
+kernel 'QMS_EM_TIMEOUT': 0
+kernel 'EM VrrRcvTime': 2
+kernel 'ALLM': 18
+kernel 'FRL': 401

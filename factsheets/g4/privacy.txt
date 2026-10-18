@@ -1,0 +1,174 @@
+present usr/sbin/acr2 620124
+absent  usr/sbin/acr
+present usr/sbin/admanager 330096
+present usr/sbin/adoverlay-service 480848
+present usr/sbin/livepick-plus 530864
+present usr/sbin/user-context-manager 689888
+present usr/sbin/nudge 362256
+present usr/sbin/rdxd 67152
+present usr/sbin/uploadd 104080
+present usr/sbin/sdx 751524
+absent  usr/sbin/iot-client
+present usr/sbin/remotediag 812712
+present usr/sbin/dmost 370896
+present usr/sbin/upnpd 1720992
+present usr/sbin/sportsalarm 271884
+absent  usr/sbin/secretagent
+present usr/sbin/color-info-miner 67156
+absent  usr/sbin/livetvwatch
+present usr/sbin/webos-sddp 38664
+--- ACR / fingerprint libraries
+./etc/palm/activities/com.webos.service.acr
+./etc/palm/activities/com.webos.service.acr/activity-com.webos.service.acr.start.json
+./etc/pmlog.d/acr.conf
+./opt/webos/tests/acr2
+./usr/lib/libalphonsoadoverlay.so.1.0.0
+./usr/lib/libalphonsosolution.so.1.0.0
+./usr/lib/libas.so
+./usr/lib/libas.so.3
+./usr/lib/libas.so.3.0
+./usr/lib/libas.so.3.0.98
+./usr/lib/opkg/info/lib32-com.webos.service.acr.control
+./usr/lib/opkg/info/lib32-com.webos.service.acr.list
+./usr/lib/opkg/info/lib32-com.webos.service.acr.postinst
+./usr/lib/udev/hwdb.d/60-autosuspend-fingerprint-reader.hwdb
+./usr/palm/packages/com.webos.service.acr
+./usr/palm/plugins/license/opensource/auto/copyrights/lib32-com.webos.service.acr.html
+./usr/palm/plugins/license/opensource/auto/lib32-com.webos.service.acr
+./usr/palm/services/com.webos.service.acr
+./usr/palm/services/com.webos.service.apiadapter/helpers/bus/services-mock/com.webos.service.acr.js
+./usr/palm/services/com.webos.service.secondscreen.gateway/helpers/bus/services-mock/com.webos.service.acr.js
+./usr/sbin/acr2
+./usr/share/acr
+./usr/share/acr/acr.a.2.1.4.db.zero.mp3
+./usr/share/javascript/ilib/locale/zoneinfo/Brazil/Acre.json
+./usr/share/luna-service2/api-permissions.d/com.webos.service.acr.api.json
+./usr/share/luna-service2/client-permissions.d/com.webos.service.acr.perm.json
+./usr/share/luna-service2/manifests.d/com.webos.service.acr.manifest.json
+./usr/share/luna-service2/roles.d/com.webos.service.acr.role.json
+./usr/share/luna-service2/services.d/com.webos.service.acr.service
+./usr/share/zoneinfo/Brazil/Acre
+./usr/share/zoneinfo/posix/Brazil/Acre
+./usr/share/zoneinfo/right/Brazil/Acre
+--- ACR audio/video capture
+N4util5TimerIN7capture7CaptureEFvvEEE
+N7capture11CaptureBuffE
+N7capture12VideoCaptureE
+N7capture13CaptureClientE
+N7capture14ImageConverterE
+N7capture15CaptureDelegateE
+N7capture16AlsaAudioWrapperE
+N7capture18VideoCaptureClientE
+N7capture7CaptureE
+NSt6thread11_State_implINS_8_InvokerISt5tupleIJMN7capture12AudioCaptureEFvvEPS4_EEEEEE
+NSt6thread11_State_implINS_8_InvokerISt5tupleIJMN7capture12VideoCaptureEFvvEPS4_EEEEEE
+NSt6thread11_State_implINS_8_InvokerISt5tupleIJMN7capture14ImageConverterEFvvEPS4_EEEEEE
+[Controller] No available audio capture : CI Plus channels not supported
+[Controller] No available audio capture : Channel info not received yet
+[Controller] No available audio capture : Channels blocked
+[Controller] No available audio capture : HybridTV is playing media
+[Controller] No available audio capture : Input blocked
+[Controller] No available audio capture : LG Channels capture not supported
+[Controller] No available audio capture : Miracast-tx is playing
+[Controller] No available audio capture : Multiview mode is ON
+ captures. 
+Sleep timer is now 0. Starting capture...
+Starting capture session.
+Starting capture timer of : 
+Starting livetv_express capture timer of : 
+Stopping capture session as recvd data is more than that of capture duration.
+Stopping capture session.
+Stopping capture timer for id: 
+Turn off audio permission so this app won't capture your TV viewership details and show you TV related content and ads
+Turning on continuous captures with no sleep.
+Unsupported captureDuration!!
+Wakeup timer expiry. Starting capture...
+_ZN11AudioReader19captureAudioSamplesEv
+capture_prepare_interval
+capture_time
+ captures. 
+Sleep timer is now 0. Starting capture...
+Starting capture session.
+Starting capture timer of : 
+Starting livetv_express capture timer of : 
+Stopping capture session as recvd data is more than that of capture duration.
+Stopping capture session.
+Stopping capture timer for id: 
+Turn off audio permission so this app won't capture your TV viewership details and show you TV related content and ads
+Turning on continuous captures with no sleep.
+Unsupported captureDuration!!
+Wakeup timer expiry. Starting capture...
+_ZN11AudioReader19captureAudioSamplesEv
+capture_prepare_interval
+capture_time
+ captures. 
+Sleep timer is now 0. Starting capture...
+Starting capture session.
+Starting capture timer of : 
+Starting livetv_express capture timer of : 
+Stopping capture session as recvd data is more than that of capture duration.
+Stopping capture session.
+Stopping capture timer for id: 
+Turn off audio permission so this app won't capture your TV viewership details and show you TV related content and ads
+Turning on continuous captures with no sleep.
+Unsupported captureDuration!!
+Wakeup timer expiry. Starting capture...
+_ZN11AudioReader19captureAudioSamplesEv
+capture_prepare_interval
+capture_time
+ captures. 
+Sleep timer is now 0. Starting capture...
+Starting capture session.
+Starting capture timer of : 
+Starting livetv_express capture timer of : 
+Stopping capture session as recvd data is more than that of capture duration.
+Stopping capture session.
+Stopping capture timer for id: 
+Turn off audio permission so this app won't capture your TV viewership details and show you TV related content and ads
+Turning on continuous captures with no sleep.
+Unsupported captureDuration!!
+Wakeup timer expiry. Starting capture...
+_ZN11AudioReader19captureAudioSamplesEv
+capture_prepare_interval
+capture_time
+--- ACR version strings
+AS_ALPHONSO_CLIENT_CLEANUP_DONE
+Alphonso-android-sdktest-app-API-key-5g7sd290B
+AlphonsoACR     
+AlphonsoACRseg  
+AlphonsoBelowAvgPwrFP
+AlphonsoDesktopTestApp
+Cannot delete alphonsoCfg rows
+Cannot update alphonsoCfg table
+Error in getting alphonsoCfg
+Error in getting alphonsoCfg row
+AS_ALPHONSO_CLIENT_CLEANUP_DONE
+Alphonso-android-sdktest-app-API-key-5g7sd290B
+AlphonsoACR     
+AlphonsoACRseg  
+AlphonsoBelowAvgPwrFP
+AlphonsoDesktopTestApp
+Cannot delete alphonsoCfg rows
+Cannot update alphonsoCfg table
+Error in getting alphonsoCfg
+Error in getting alphonsoCfg row
+AS_ALPHONSO_CLIENT_CLEANUP_DONE
+Alphonso-android-sdktest-app-API-key-5g7sd290B
+AlphonsoACR     
+AlphonsoACRseg  
+AlphonsoBelowAvgPwrFP
+AlphonsoDesktopTestApp
+Cannot delete alphonsoCfg rows
+Cannot update alphonsoCfg table
+Error in getting alphonsoCfg
+Error in getting alphonsoCfg row
+AS_ALPHONSO_CLIENT_CLEANUP_DONE
+Alphonso-android-sdktest-app-API-key-5g7sd290B
+AlphonsoACR     
+AlphonsoACRseg  
+AlphonsoBelowAvgPwrFP
+AlphonsoDesktopTestApp
+Cannot delete alphonsoCfg rows
+Cannot update alphonsoCfg table
+Error in getting alphonsoCfg
+Error in getting alphonsoCfg row

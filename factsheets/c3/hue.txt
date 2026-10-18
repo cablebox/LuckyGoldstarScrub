@@ -1,0 +1,40 @@
+## usr/lib/libvtcapture.so.1
+      1 vtCapture_finalizeHistogram
+      1 vtCapture_getHistogram
+      1 vtCapture_initHistogram
+      1 vtCapture_setPresetHistogram
+/com.lighting.huesync.service/hue_sync_service
+Client not found on the whitelist.
+LIB_CAPTURE_REFUSED_BLOCKED
+LIB_CAPTURE_REFUSED_NO_SIGNAL
+LIB_CAPTURE_REFUSED_PERMISSION_DENIED
+LIB_CAPTURE_REFUSED_RESOURCE_BUSY
+LIB_CAPTURE_REFUSED_WATCHING_3D
+LIB_CAPTURE_REFUSED_WATCHING_SCRAMBLED
+LIB_CAPTURE_REFUSED_WATCHING_SECURE_VIDEO
+whitelist
+## usr/lib/libvtcapture.so.1.0.0
+      1 vtCapture_finalizeHistogram
+      1 vtCapture_getHistogram
+      1 vtCapture_initHistogram
+      1 vtCapture_setPresetHistogram
+/com.lighting.huesync.service/hue_sync_service
+Client not found on the whitelist.
+LIB_CAPTURE_REFUSED_BLOCKED
+LIB_CAPTURE_REFUSED_NO_SIGNAL
+LIB_CAPTURE_REFUSED_PERMISSION_DENIED
+LIB_CAPTURE_REFUSED_RESOURCE_BUSY
+LIB_CAPTURE_REFUSED_WATCHING_3D
+LIB_CAPTURE_REFUSED_WATCHING_SCRAMBLED
+LIB_CAPTURE_REFUSED_WATCHING_SECURE_VIDEO
+whitelist
+color-info-miner present
+etc/systemd/system/colorInfoMiner-start.service
+etc/palm/defaultSettings.json
+etc/palm/description.json
+etc/palm/description.bson
+etc/palm/description.categorykeysmap.bson
+etc/palm/activities/com.webos.service.colorInfoMiner/activity-com.webos.service.colorInfoMiner.start.json
+etc/palm/description.categorykeysmap.json
+usr/share/luna-service2/api-permissions.d/default.permission.api.json
+usr/share/luna-service2/api-permissions.d/com.webos.service.colorInfoMiner.api.json

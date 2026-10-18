@@ -35,8 +35,17 @@ LG's shared device database (133 profiles in the C3 image) sets `supportQmsVrr` 
 - **true** on 2023 o22n (C3/G3) and o22n8k, k8hpp, and the 2024-2026 high-end platforms;
 - **absent** for o20: CX profiles aren't in the database at all.
 
-[Inference] Leaving out the 2022 C2 suggests a limit in the hardware or the picture pipeline (frame-rate
-conversion and scaler timing) rather than a missing update.
+*Correction:* an earlier version of this file inferred that leaving out the 2022 C2 suggested a hardware limit.
+The C2's own current firmware (33.31.68, webOS 10) contradicts that:
+- Its kernel contains the same LX QMS receiver code as the C3/C4: "EM QMS", BaseRate, Next TFR and
+  `MConst_Zero_Counter` debouncing.
+- Its user space has the full QMS support.
+- The o22 and o22n product profiles differ only in model-year fields, a few audio/broadcast extras and
+  `hdmi.supportQmsVrr`.
+
+The Realtek 2022 B2 (k8hp) vs 2023 B3 (k8hpp) shows the same pattern. Static analysis can't rule out a silicon
+difference between the chip revisions. See `models.md` §4, which includes an untested experiment for rooted 2022 TVs.
+**The CX conclusion below is unchanged:** its kernel has none of this code.
 
 ## Why it can't be backported
 1. **The kernel can't be replaced.** The receiver code is compiled into the kernel image, which is verified by

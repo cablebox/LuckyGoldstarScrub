@@ -1,0 +1,34 @@
+.eulaInfo {"eulaList": [{"accepted": false, "fileLocation": "/usr/palm/license/", "fileName": "S_SVC_20141117001.html", "id": "S_SVC", "updated": false, "version": "20141
+.eulaInfoNetwork {"eulaList": [{"accepted": false, "fileLocation": "/usr/palm/license/", "fileName": "license.html", "id": "S_LGN", "title": "Legal Notice", "type": "L", "update
+.eulaStatus {"acrAdAllowed": false, "acrAllowed": false, "acrGdprAllowed": false, "acrOnAllowed": false, "additional1Allowed": false, "additional2Allowed": false, "additional3Allowed": false, "additional4Allowed": false, "additional5Allowed": false, "additionalDataAllowed": false, "chpAllowed": false, "cookiesAllowed": false, "customAdAllowed": false, "customadsAllowed": false, "generalTermsAllowed": false, "marketingOnAllowed": false, "networkAllowed": true, "remoteDiagAllowed": false, "takeOnAllowed": false, "thirdPartySharingAllowed": false, "voice2Allowed": false, "voiceAllowed": false}
+channel.aiFavoriteGroup4stb ""
+channel.aiFavoriteGroup4tv ""
+channel.recommended "off"
+commercial.preLoadedApp {"App1": {"order": 0, "value": 0}, "App10": {"order": 0, "value": 0}, "App11": {"order": 0, "value": 0}, "App12": {"order": 0, "value": 0}, "App13": {"order": 0
+commercialTv.propertyTvPreloadedAppLauncherUi "1"
+general.adCookie "on"
+general.aiNudge "off"
+general.checkHomeAutoLaunchValue "default"
+general.doNotSellMyPersonalInformation "off"
+general.homeAutoLaunch "off"
+general.homeAutoLaunchMode "full"
+general.homeEffect "on"
+general.homePromotion "on"
+general.launchEulaByHome false
+general.lmt "off"
+general.personalRecommend {"changedByUser": false, "value": "off"}
+general.screenSaverAd "on"
+option.additionalAudioSelection "none"
+option.addressInfo ["not_defined", "not_defined", "not_defined", "not_defined"]
+option.adjustments {"blackAndWhite": "off", "colorInversion": "off"}
+option.livePlus "off"
+option.livePromotion "on"
+option.promotionOriginEnd "undefined"
+option.promotionOriginStart "undefined"
+option.promotionPeriodEnd "0"
+option.promotionPeriodStart "0"
+option.promotionStreamer "off"
+option.quickStartMode "on"
+option.webOSPromotionVideo "off"
+other.homeEffectVersion [{"id": "Christmas", "version": 1.0}, {"id": "Halloween", "version": 1.0}]
+voiceframework.supportThinQtvNlp false
