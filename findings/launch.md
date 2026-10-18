@@ -66,7 +66,7 @@ the preloads need comes from 50scrub's other cuts instead (§3).
 
 **Don't break step 2.** Stopping or blackholing `sdx`, `appinstalld` or `securitymanager`, or DNS-blackholing LG's
 server-sync hosts so they hang instead of failing fast, can stall launches by seconds or produce
-"One moment please" refusals. A blocklist that answers NXDOMAIN is fine; one that silently drops traffic is not
+"One moment please" refusals. A blocklist that answers `0.0.0.0` (as `blocklist.txt` does) or NXDOMAIN fails fast and is fine; one that silently drops traffic is not
 **[Inference]**. This is why `60launch` keeps `appinstalld` out of the low-priority CPU group, and it argues
 against `performance.md` R5's sdx kill.
 

@@ -14,6 +14,7 @@ extracted rootfs.
 |---|---|
 | `REPORT.md` | This summary: what to change, what is slow, how the TV phones home |
 | `findings/performance.md` | Boot, memory, preload, logging, scheduling and I/O analysis with 17 ranked changes |
+| `findings/privacy_deep_dive.md` | Identifiers, data kept on the TV, factory reset, TLS verification, consent enforcement, Wi-Fi geolocation, browser |
 | `findings/launch.md` | App launch time: what a launch waits on and how to get the apps you use under 3 s |
 | `findings/ui_apps.md` | Home launcher, Live TV/HDMI shell and Settings: per-launch network traffic and timers |
 | `findings/acr.md` | Automatic Content Recognition (Alphonso) and the ad and overlay pipeline |
@@ -42,11 +43,14 @@ slightly.
 | 3 | **Home Auto Launch → Off**, set in the menu | `general.homeAutoLaunch` (on) | Stops Home from rendering at every power-on. Setting it in the menu marks the value as user-chosen, so LG's server can no longer turn it back on. |
 | 4 | **Additional Settings → Live Plus → Off** | `option.livePlus` | Stops the ACR daemon from fingerprinting what you watch, along with the ad and shopping overlays drawn over TV and HDMI. |
 | 5 | **User Agreements:** withdraw **Viewing Information**, **Interest-Based Advertising** and **Voice Information** (keep voice if you use it) | `eulaStatus.acrOnAllowed`, `additionalDataAllowed`, `customAdAllowed`, `voiceAllowed` | These are the real off switches for ACR, the viewing-history upload and personalized ads (§3). |
-| 6 | **Limit Ad Tracking On**, **Do Not Sell My Personal Information On**, Ad Cookie Off, reset the Ad ID | `general.lmt` (off), `doNotSellMyPersonalInformation` (off), `adCookie` (on) | These are sent as flags alongside the ad ID. They do not stop collection. |
+| 6 | **Limit Ad Tracking On**, **Do Not Sell My Personal Information On**, Ad Cookie Off, reset the Ad ID | `general.lmt` (off), `doNotSellMyPersonalInformation` (off), `adCookie` (on) | These are sent as flags alongside the ad ID. They do not stop collection: in admanager, LMT and Do Not Sell only switch frequency capping, and trackers still fire. A reset gives a new ad ID, but LG logs the reset and sends the permanent device ID with ad requests, so it only hides you from third parties. |
 | 7 | **AI Service → AI Recommendation Off**; Sports Alert Off; Screen Saver Promotion Off; Live Promotion Off | `general.aiNudge` (on), `sportsAlarm`, `general.screenSaverAd` (on), `option.livePromotion` (on) | Fewer background services and pop-ups. |
 | 8 | **Cold reboot about weekly** if Quick Start+ is on (unplug for 1 minute) | `option.quickStartMode` | Quick Start+ resumes a saved memory image, so memory fragmentation, zram contents and leaks build up across weeks of "off". |
 | 9 | Turn off **Mobile TV On / LG Connect Apps / AirPlay** if unused | `allowMobileDeviceAccess` (true) | Closes LAN port 3001 and the open DIAL app-launch ports (§3.6). |
-| 10 | **Router DNS:** load the "safe" section of `blocklist.txt` | — | Blocks Alphonso ACR, LG ad, crash/analytics, viewing-log and remote-diagnostic hosts. **Don't block `*.lgtvsdp.com` or `snu.lge.com`**: that breaks the app store and security updates. Use `0.0.0.0` answers, not NXDOMAIN. If Home gets slower after blocking, unblock `recommend`/`nudge.lgtvcommon.com`; Home waits up to 3 s for its shelves. |
+| 10 | **Router DNS:** load the "safe" section of `blocklist.txt` | — | Blocks Alphonso ACR, LG ad, crash/analytics, viewing-log and remote-diagnostic hosts. **Don't block `*.lgtvsdp.com` or `snu.lge.com`**: that breaks the app store and security updates. Use `0.0.0.0` answers rather than silently dropping traffic, so blocked calls fail fast. If Home gets slower after blocking, unblock `recommend`/`nudge.lgtvcommon.com`; Home waits up to 3 s for its shelves. |
+| 11 | **Don't enable Google Assistant or Alexa** unless you want them | `requiredEULA: voice2` | Their agreement group includes Viewing Information, so enabling either one turns on the viewing-history upload and full analytics. LG's own voice doesn't (`findings/privacy_deep_dive.md` §5.1). |
+| 12 | **Wired TV: turn Wi-Fi off.** Give your phone a non-personal Bluetooth name before using the TV as a speaker. Use neutral names for the TV and Home Dashboard devices | — | ACR can locate the home from nearby Wi-Fi access points. The phone's Bluetooth name and Home Dashboard device names go to LG's analytics with only the Terms of Use accepted (§6.1–6.2). |
+| 13 | **In the LG browser, don't sign in to sites and don't use Bing** | — | The browser makes its cookie and password store readable by every process on the TV, and Bing suggestions go out over plain HTTP (§7.2). |
 
 ### Tier 2: rooted TV (e.g. webosbrew / Homebrew Channel)
 
@@ -163,6 +167,20 @@ LMT and Do Not Sell are **off** and the ad cookie is **on**.
 Push-to-talk audio streams to cloud speech-to-text (ThinQ AI `/voice/stt/v1/dictation/upstream`) or to
 Alexa/Google, gated by `voiceAllowed`. **The CX has no far-field microphone** (`supportVoiceLongDistance:
 false`), so there is no always-listening path.
+
+
+### 3.8 Second pass (`findings/privacy_deep_dive.md`)
+- **ACR is unauthenticated:** the Alphonso SDK disables TLS certificate and hostname checks on every request, including fingerprints and location.
+  It also sends the BSSID and signal of every Wi-Fi network the TV can hear to Alphonso's location service, which returns your lat/long and zip.
+- **The device ID is permanent:** the LGUDID sits on a raw eMMC partition that factory reset doesn't touch. The "hashed MAC" is an unsalted
+  SHA-512 of the MAC, so it is reversible. Store apps at partner trust can likely read both.
+- **Factory reset keeps** Bluetooth pairings, marketing-consent history, per-channel watch time and probably the db8 viewing history.
+- **Wi-Fi passwords are stored with a hard-coded Blowfish key.** The ThinQ refresh token and HomeKit password are written to `/var/log`
+  at info level, which crash reports upload.
+- **sdx's first requests and its server-domain list download skip certificate checks.** LG's CA bundle trusts 222 roots, including
+  several that browsers have distrusted.
+- **LG's server decides which Live TV/HDMI sources are watch-logged.** The only consent check is in the Live TV app's UI code.
+  The server can also hide the Home Auto Launch menu item and move sdx's endpoints.
 
 ---
 

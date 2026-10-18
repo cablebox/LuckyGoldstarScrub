@@ -184,7 +184,7 @@ Legend: **[O]** means I saw it directly (quoted string, config line or script). 
 
 ### 1.10 Remote Service (LG support remote control): `remotediag` + `com.webos.app.remoteservice`
 
-* **Runtime:** it runs at boot (`etc/init/remotediag.conf`, respawn; its description is mislabelled "External Input Manager"). **[O]**
+* **Runtime:** started on demand through `usr/share/dbus-1/system-services/com.webos.service.remotediag.service`. The upstart job `etc/init/remotediag.conf` (respawn, mislabelled "External Input Manager") is never read, because this image runs systemd (`performance.md` §0). Corrected in `privacy_deep_dive.md` §3. **[O]**
 * **Endpoints [O]:** `rone-aic/eic/kic/saic.lge.com` and `rone-tv-{aic,cic,eic,kic,saic}.lge.com`. Connections are TLS with a device private key from the secure store, with separate main and stream ports.
 * **Capabilities [O]:** `ScreenCapture`/`HighScreenCapture`, `SendKey`, `GetMACAddress`, `GetSerialNumber`, `FactoryReset`, `ResetPicture`/`ResetSound`, `DLNAServerIpInfo` and fetch-log (`ImplFetchLog`). This is effectively full remote control of the TV plus screen capture.
 * **Gating:** `RequestServiceAgreeConfirm`/`Cancel` and `/remote/regist/remoteServiceTerms.dev`. **[O]** **[I]** A session is only established when the user opens Support → Remote Service and agrees with an agent-supplied code. No boot-time connection was evident.
@@ -331,8 +331,7 @@ luna-send -n 1 luna://com.webos.rdxd/setLogSettings '{"analyticsLog":false,"cras
 rm -f /var/spool/uploadd/pending/*              # pending reports
 # Usage-history / recommendations
 systemctl stop user-context-manager; systemctl stop nudge; systemctl stop contentminer
-# Remote support daemon (re-enable if you ever need LG support)
-systemctl stop remotediag
+# Remote support daemon: started on demand, not at boot; see scripts/50scrub BLOCK_REMOTEDIAG
 # IoT (normally idle unless account linked)
 systemctl stop iot-client
 # LAN surface
