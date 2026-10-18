@@ -2,8 +2,7 @@
 # Boot-time tuning for a ROOTED LG CX (webOS 5, firmware 04.64.00).
 # Install as /var/lib/webosbrew/init.d/50scrub (chmod 755; the name must not contain a dot,
 # or run-parts skips it). Every block is independent: delete the ones you don't want.
-# Everything here is volatile (re-applied each boot); to revert, delete this file and reboot,
-# then run the setConfigs call below with maxPreloadApp 6 in case configd persisted it.
+# Everything here is volatile (re-applied each boot); to revert, delete this file and reboot.
 # UNTESTED ON HARDWARE: derived from static analysis of the firmware. See REPORT.md.
 
 exec >>/tmp/50scrub.log 2>&1
@@ -14,16 +13,18 @@ luna-send -n 1 luna://com.webos.service.settings/setSystemSettings \
   '{"category":"option","settings":{"livePlus":"off","livePromotion":"off"}}'
 luna-send -n 1 luna://com.webos.service.settings/setSystemSettings \
   '{"category":"general","settings":{"lmt":"on","doNotSellMyPersonalInformation":"on","adCookie":"off","homePromotion":"off","homeAutoLaunch":"off","homeEffect":"off","aiNudge":"off","screenSaverAd":"off"}}'
-# Also toggle Home Auto Launch once in the menu: that sets checkHomeAutoLaunchValue to "user",
-# which stops LG's server from re-enabling it. Optional: switch to the 3 MB Basic Home
+# checkHomeAutoLaunchValue "user" stops LG's server switch (auto_home_launch) from re-enabling
+# Home Auto Launch; the menu sets the same value when you toggle it yourself.
+luna-send -n 1 luna://com.webos.service.settings/setSystemSettings \
+  '{"category":"general","settings":{"checkHomeAutoLaunchValue":"user"}}'
+# Optional: switch to the 3 MB Basic Home
 # (same as Home Settings > Home Style > Basic) instead of the 76 MB fullhome launcher:
 # luna-send -n 1 luna://com.webos.service.settings/setSystemSettings \
 #   '{"category":"general","settings":{"defaultApps":{"home":"com.webos.app.home"}}}'
 
-# --- Performance: preload at most 2 apps instead of 6 (biggest RAM win) ---
-luna-send -n 1 luna://com.webos.service.config/setConfigs \
-  '{"configs":{"com.webos.service.preloadmanager.maxPreloadApp":2}}'
-systemctl restart preload-manager.service
+# --- Preloading: see scripts/60launch, which replaces LG's mix with the apps you use ---
+# (An earlier version capped maxPreloadApp at 2 here. That saves RAM but makes YouTube and Prime
+# cold-start every time; findings/launch.md section 3.)
 
 # --- Performance: drop debug-level log contexts (logs live in unswappable ramfs) ---
 for c in ls-hubd.debug ls-hubd.distinct acr ADMANAGER adoverlay-service IEPG lginput2 gmwl.dbg \
@@ -32,13 +33,21 @@ for c in ls-hubd.debug ls-hubd.distinct acr ADMANAGER adoverlay-service IEPG lgi
   PmLogCtl set "$c" warning
 done
 
+# --- Privacy: these contexts log secrets at info level, and crash reports upload /var/log ---
+#   iot-client: ThinQ OAuth refreshToken   HOMEKIT: HomeKit password   ASC: Wi-Fi SSIDs
+for c in iot-client HOMEKIT ASC; do PmLogCtl set "$c" warning; done
+rm -f /var/log/iot-client-log*
+
 # --- Privacy + performance: stop optional daemons (each removes its feature) ---
-#   user-context-manager/nudge: viewing-history upload + AI nudges
+#   user-context-manager/nudge: viewing-history upload + AI nudges. user-context-manager also ranks
+#     apps for preloading and memchute's kill order; 60launch pins preloads and turns memchute's
+#     ranking off so masking it doesn't slow launches. Without 60launch, consider keeping it.
 #   rdxd/uploadd: crash/analytics uploads    iot-client: ThinQ
 #   sportsalarm: sports alerts                webos-sddp: Control4 discovery
+#   dmost: reads the ad ID, LGUDID and MACs at every boot, but its service isn't offered in the US
 # Do NOT add memchute, sam, configd, surface-manager, WebAppMgr, db8*, settings-service,
 # second-screen-gateway or tvservicemock.
-for u in user-context-manager nudge rdxd uploadd iot-client sportsalarm webos-sddp; do
+for u in user-context-manager nudge rdxd uploadd iot-client sportsalarm webos-sddp dmost; do
   systemctl stop "$u.service"; systemctl mask --runtime "$u.service"
 done
 
@@ -51,3 +60,23 @@ echo 16384 > /proc/sys/vm/min_free_kbytes # stock 8192
 
 # --- Performance: Bluetooth daemon ships at nice -20, above the UI ---
 renice 0 -p "$(pidof webos-bluetooth-service)"
+
+# --- Optional privacy hardening (off by default; see findings/privacy_deep_dive.md) ---
+# Pin sdx's server-domain list to the shipped copy. sdx downloads this list without checking the
+# server's certificate, and it maps every LG cloud service to a host. Undo (delete these lines and
+# reboot) if LG services stop working after LG migrates a domain.
+PIN_SDX_DOMAINS=0
+if [ "$PIN_SDX_DOMAINS" = 1 ] && [ -f /mnt/lg/cmn_data/sdp/sdx/server_addr_version.conf ]; then
+  mount --bind /usr/palm/sdx/server_addr_version.conf /mnt/lg/cmn_data/sdp/sdx/server_addr_version.conf
+  pkill -x sdx   # on-demand service: the next caller restarts it with the pinned list
+fi
+# Block LG Remote Service (remote screen capture, key injection and log pull by LG support) from
+# being started on demand for this boot.
+BLOCK_REMOTEDIAG=0
+if [ "$BLOCK_REMOTEDIAG" = 1 ]; then
+  for f in /usr/share/dbus-1/system-services/com.webos.service.remotediag.service \
+           /usr/share/dbus-1/services/com.webos.service.remotediag.service; do
+    [ -f "$f" ] && mount --bind /dev/null "$f"
+  done
+  ls-control scan-services; pkill -x remotediag
+fi

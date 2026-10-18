@@ -1,0 +1,138 @@
+#!/bin/sh
+# App-launch tuning for a ROOTED LG CX (webOS 5, firmware 04.64.00). Goal: launches under 3 s.
+# Install as /var/lib/webosbrew/init.d/60launch (chmod 755; no dot in the name). It runs after 50scrub.
+# See findings/launch.md for the evidence behind each block. Every block is independent.
+# UNTESTED ON HARDWARE: derived from static analysis of the firmware. Measure with scripts/launchtime
+# before and after, and enable one block at a time if anything misbehaves.
+#
+# Blocks marked [next boot] write a persistent file that a daemon reads only when it starts, so they
+# take effect from the second boot after installing. Revert everything with:
+#   rm /var/lib/webosbrew/init.d/60launch /home/root/memorymanager-conf.json \
+#      /var/preferences/webos-preload-manager-conf.json /home/root/wam-conf.sh /home/root/lsm-settings.json
+#   sed -i '/^QML_/d' /var/systemd/system/env/sam.env
+#   then reboot and setConfigs maxPreloadApp 6 (configd may have persisted the preload list).
+
+# Edit these to your own most-used apps (IDs from: luna-send -n 1 luna://com.webos.applicationManager/listApps '{}').
+# Keep to 3: each costs 100-135 MB while preloaded. Netflix and Prime are native, YouTube is a web app.
+PRELOAD_APPS="netflix youtube.leanback.v4 amazon"
+# Opt-in: restarting surface-manager blanks the screen for a few seconds at boot (L6).
+FAST_WIPE=0
+
+exec >>/tmp/60launch.log 2>&1
+echo "=== $(date) 60launch"
+
+# --- L1 [next boot]: shorten memchute's pre-launch memory wait --------------------------------
+# Stock: if usable RAM < 120 MB, memchute kills apps and re-checks every 500 ms, up to 7 times
+# (about 3.5 s, hard cap 7 s) before the app process is even started. Cap the wait at about 0.6 s.
+# SortByModeledList false: 50scrub masks user-context-manager, and memchute would otherwise retry
+# its rank query for up to 5 s ("retry getModeledList from UCM(timeout 5 secs)").
+# memchute reads /home/root/memorymanager-conf.json ahead of the /etc copy (strings in usr/sbin/memchute).
+# Check it took: grep 'Early load conf file from' /var/log/messages
+sed -e 's/"LaunchTimeout" *: *[0-9]*/"LaunchTimeout": 200/' \
+    -e 's/"LaunchTimeoutCount" *: *[0-9]*/"LaunchTimeoutCount": 3/' \
+    -e 's/"MaxTimeout" *: *[0-9]*/"MaxTimeout": 2000/' \
+    -e 's/"SortByModeledList" *: *true/"SortByModeledList": false/' \
+    /etc/palm/memorymanager-conf.json > /home/root/memorymanager-conf.json.new &&
+  mv /home/root/memorymanager-conf.json.new /home/root/memorymanager-conf.json
+
+# --- L2 [next boot]: re-enable the QML disk cache for SAM-launched apps -------------------------
+# 80-starfish-global.conf forces QML_DISABLE_DISK_CACHE=1, so Home, Live TV/HDMI (inputcommon),
+# livemenu and voice recompile 100-260 QML files on every cold start. Any non-empty value disables
+# the cache, so set it empty and force it on. Cache lands in /home/root/.cache (persistent).
+ENV=/var/systemd/system/env; mkdir -p $ENV
+grep -q '^QML_FORCE_DISK_CACHE=' $ENV/sam.env 2>/dev/null ||
+  printf 'QML_DISABLE_DISK_CACHE=\nQML_FORCE_DISK_CACHE=1\n' >> $ENV/sam.env
+
+# --- L3: WAM flags (bigger HTTP + V8 code cache, bigger shader cache, launch-time logging) --------
+# webapp-mgr.sh sources /etc/wam/plugins/conf.sh just before exec, after building every switch, so a
+# bind-mounted copy can append switches (Chromium takes the last value of a repeated switch).
+# The stock 50 MB disk cache is shared by every web app, so hosted apps evict each other's JS and
+# compiled code. Restarting WAM closes all web apps; preload-manager re-preloads them in L4.
+if ! grep -q 'local launch tuning' /etc/wam/plugins/conf.sh; then
+  cp /etc/wam/plugins/conf.sh /home/root/wam-conf.sh
+  cat >> /home/root/wam-conf.sh <<'EOF'
+# --- local launch tuning (60launch) ---
+WAM_EXTRA_FLAGS="$WAM_EXTRA_FLAGS --disk-cache-size=157286400 --gpu-program-cache-size-kb=8192"
+export WAM_EXTRA_FLAGS
+export LAUNCH_TIME_CHECK=1
+EOF
+  mount --bind /home/root/wam-conf.sh /etc/wam/plugins/conf.sh && systemctl restart webapp-mgr.service
+fi
+
+# --- L4: preload the apps you actually use, not the stock mix ---------------------------------
+# A preloaded app's launch is a window raise + resume. This is the only path to a sub-second launch
+# for a web app, and it skips process spawn + network bootstrap for native ones. Pinned (isPinUp) so
+# the choice does not depend on user-context-manager's ranking, which 50scrub masks.
+# Needs Terms of Use (generalTerms) accepted: SAM refuses "preload without eula" otherwise.
+entry() {
+  case $1 in
+    netflix)             echo '{"id":"netflix","staticPriority":10,"requiredMemory":100,"preloadType":"periodic","preloadMode":"partial","isEnabled":true,"isPinUp":true}' ;;
+    youtube.leanback.v4) echo '{"id":"youtube.leanback.v4","staticPriority":10,"requiredMemory":135,"preloadType":"periodic","preloadMode":"semi-full","isEnabled":true,"isPinUp":true}' ;;
+    *)                   echo "{\"id\":\"$1\",\"staticPriority\":10,\"requiredMemory\":100,\"preloadType\":\"periodic\",\"preloadMode\":\"partial\",\"isEnabled\":true,\"isPinUp\":true}" ;;
+  esac
+}
+HOME_ENTRY='{"id":"%s","staticPriority":1,"requiredMemory":40,"preloadType":"periodic","preloadMode":"criu","isEnabled":true,"extPolicy":[{"requiredMemory":50,"preloadMode":"full"}]}'
+LIST="$(printf "$HOME_ENTRY" com.webos.app.fullhome),$(printf "$HOME_ENTRY" com.webos.app.home)"
+ALLOWED='"com.webos.app.home":true,"com.webos.app.fullhome":true'
+N=1
+for a in $PRELOAD_APPS; do LIST="$LIST,$(entry $a)"; ALLOWED="$ALLOWED,\"$a\":true"; N=$((N+1)); done
+cat > /var/preferences/webos-preload-manager-conf.json <<EOF
+{ "version": 3, "setting": { "interval": 5 },
+  "resourcemon": { "timeout": 15, "startAfter": 2, "waitCpuUnder": 40 },
+  "allowedApps": { $ALLOWED } }
+EOF
+sleep 45   # let boot-done, preload-manager and 50scrub settle
+luna-send -n 1 luna://com.webos.service.config/setConfigs \
+  "{\"configs\":{\"com.webos.service.preloadmanager.maxPreloadApp\":$N,\"com.webos.service.preloadmanager.supportAppList\":[$LIST]}}"
+systemctl restart preload-manager.service
+
+# --- L5: no screenshot of the outgoing app on every Home press --------------------------------
+# The compositor renders on its GUI thread, and the Recents capture runs exactly when Home animates.
+# LG already sets this on every lite/mini model. Recents cards show icons instead of screenshots.
+luna-send -n 1 luna://com.webos.service.config/setConfigs '{"configs":{"com.webos.surfacemanager.disableCapture":true}}'
+
+# --- L6 (opt-in): 150 ms launch/switch wipe instead of 500 ms ---------------------------------
+# The splash cannot close until its 500 ms wipe ends, and every switch plays a 500 ms wipe.
+# Settings are deep-merged from this (stock: empty) file when surface-manager starts.
+if [ "$FAST_WIPE" = 1 ] && ! mountpoint -q /usr/lib/qml/WebOSCompositor/settings.json 2>/dev/null; then
+  printf '{"com.webos.surfacemanager":{"fullscreen":{"wiperTime":150},"imageSplash":{"wiperTime":150}}}\n' \
+    > /home/root/lsm-settings.json
+  mount --bind /home/root/lsm-settings.json /usr/lib/qml/WebOSCompositor/settings.json &&
+    systemctl restart surface-manager.service
+fi
+
+# --- L7: give the UI CPU priority over background daemons --------------------------------------
+# No unit uses CPU shares; the UI competes with ~117 daemons on equal terms. Apps forked by sam and
+# renderers forked by WebAppMgr inherit the ui group. Keep AV, input and memory daemons OUT of bg:
+# LG forces SCHED_NORMAL (ATTR_FORCE_SCHEDNORMAL=YES), so they have no RT priority to fall back on.
+CG=/sys/fs/cgroup/cpu,cpuacct; [ -d "$CG" ] || CG=/sys/fs/cgroup/cpu
+if [ -f "$CG/cpu.shares" ]; then
+  mkdir -p $CG/ui $CG/bg
+  echo 4096 > $CG/ui/cpu.shares
+  echo 128 > $CG/bg/cpu.shares
+  mvp() { for p in $(pidof "$1"); do for t in /proc/$p/task/*; do echo ${t##*/} > $CG/$2/tasks; done; done; }
+  for n in sam surface-manager WebAppMgr; do mvp $n ui; done
+  # Not appinstalld (SAM checks appInstallService/status before every launch) and not PmLogDaemon
+  # (a starved log daemon can block every process that logs).
+  for n in sdx qosm contentminer nudge iot-client sportsalarm homekit uploadd rdxd emmcd \
+           admanager adoverlay-service acr2 livepick-plus dmr webos-preload-manager \
+           LunaDownloadMgr; do mvp $n bg; done
+else
+  echo "no cpu cgroup mounted; falling back to per-thread renice"
+  rn() { for p in $(pidof "$1"); do for t in /proc/$p/task/*; do renice "$2" -p ${t##*/}; done; done; }
+  rn sam -10; rn surface-manager -10; rn WebAppMgr -5
+fi
+
+# --- L8: keep app files in cache; don't let db8/log fsyncs block launch reads -------------------
+# rootfs is LZO squashfs (32 KiB blocks, 3-entry fragment cache) and store apps sit on eCryptfs, so
+# every evicted page is re-read and decompressed/decrypted on the next launch.
+echo 50 > /proc/sys/vm/vfs_cache_pressure
+Q=/sys/block/mmcblk0/queue/iosched
+[ -f $Q/slice_idle ] && echo 0 > $Q/slice_idle
+[ -f $Q/low_latency ] && echo 1 > $Q/low_latency
+for p in $(pidof mojodb-luna PmLogDaemon emmcd uploadd rdxd); do ionice -c 3 -p $p; done
+
+# --- Diagnostics for findings/launch.md section 6 (CPU hotplug / frequency under LG's PMS governor) ---
+echo "cpu online: $(cat /sys/devices/system/cpu/online) possible: $(cat /sys/devices/system/cpu/possible)"
+grep -o 'criu_enabled' /proc/cmdline || echo "criu not enabled on this boot"
+echo "=== done"

@@ -78,6 +78,7 @@
 0.0.0.0 us.smartshare.lgtvsdp.com
 0.0.0.0 ibs.lgappstv.com
 0.0.0.0 us.ibs.lgappstv.com
+# lgrecommends also serves Google/Amazon/Facebook sign-in to the LG account (com.webos.app.facebooklogin)
 0.0.0.0 lgrecommends.lgappstv.com
 0.0.0.0 us.lgrecommends.lgappstv.com
 0.0.0.0 www.lgappstv.com
@@ -171,6 +172,8 @@
 0.0.0.0 api.accuweather.com
 0.0.0.0 images.sports.gracenote.com
 0.0.0.0 akamai-b.cdn.cddbp.net
+# --- LG browser search suggestions sent over plain HTTP (Bing only; see privacy_deep_dive.md 7.2) ---
+0.0.0.0 api.bing.com
 # --- Misc ---
 0.0.0.0 time.bora.net
 0.0.0.0 connectivitycheck.android.com

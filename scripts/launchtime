@@ -1,0 +1,25 @@
+#!/bin/sh
+# Measure app launch time on a rooted LG CX. Usage: launchtime <appId> [cold]
+#   cold: close the app first (preload-manager may re-preload it within ~5 s, so this measures a
+#   true cold start only if the app is not in the preload list).
+# Prints seconds from the launch request to SAM's "foreground" life event, then the matching log
+# markers (WAM's ALL_FRAMES_DONE needs LAUNCH_TIME_CHECK=1, which scripts/60launch sets).
+# Note: "foreground" is when the window is shown, which can be before the app has drawn its content.
+APP=$1; [ -n "$APP" ] || { echo "usage: $0 <appId> [cold]"; exit 1; }
+OUT=/tmp/launchtime.$$
+if [ "$2" = cold ]; then
+  luna-send -n 1 luna://com.webos.applicationManager/closeByAppId "{\"id\":\"$APP\"}" >/dev/null
+  sleep 3
+fi
+luna-send -i luna://com.webos.applicationManager/getAppLifeEvents '{"subscribe":true}' |
+  while IFS= read -r l; do echo "$(cut -d' ' -f1 /proc/uptime) $l"; done > $OUT &
+SUB=$!
+sleep 1
+T0=$(cut -d' ' -f1 /proc/uptime)
+luna-send -n 1 luna://com.webos.applicationManager/launch "{\"id\":\"$APP\"}" >/dev/null
+i=0
+while [ $i -lt 30 ] && ! grep -q "\"$APP\".*\"foreground\"\|\"foreground\".*\"$APP\"" $OUT; do sleep 0.5 2>/dev/null || sleep 1; i=$((i+1)); done
+kill $SUB 2>/dev/null; pkill -f 'getAppLifeEvents' 2>/dev/null
+awk -v t0=$T0 -v app="$APP" 'index($0, app) { printf "+%.2fs %s\n", $1 - t0, substr($0, index($0, $2)) }' $OUT
+grep -E "APP_LAUNCHTIME_CHECK.*$APP|launch by (timeout|required)|request close by" /var/log/messages | tail -5
+rm -f $OUT

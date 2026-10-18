@@ -14,14 +14,21 @@ extracted rootfs.
 |---|---|
 | `REPORT.md` | This summary: what to change, what is slow, how the TV phones home |
 | `findings/performance.md` | Boot, memory, preload, logging, scheduling and I/O analysis with 17 ranked changes |
+| `findings/privacy_deep_dive.md` | Identifiers, data kept on the TV, factory reset, TLS verification, consent enforcement, Wi-Fi geolocation, browser |
+| `findings/launch.md` | App launch time: what a launch waits on and how to get the apps you use under 3 s |
 | `findings/ui_apps.md` | Home launcher, Live TV/HDMI shell and Settings: per-launch network traffic and timers |
 | `findings/acr.md` | Automatic Content Recognition (Alphonso) and the ad and overlay pipeline |
 | `findings/telemetry.md` | sdx cloud broker, crash and analytics uploads, viewing logs, ads, voice, LAN exposure |
 | `findings/endpoints.md` / `endpoints_raw.tsv` | Every server the firmware can contact, sorted by purpose |
 | `findings/versions.md` | Component versions, CA bundle, debug leftovers |
+| `findings/huesync.md` | Philips Hue Sync TV: why the C3 is excluded (business decision), what the CX lacks, and a rooted-CX alternative |
+| `findings/qms.md` | Quick Media Switching: how the C3/C4 implement it and why it can't be backported to the CX |
 | `blocklist.txt` | Hosts-format DNS blocklist: a "safe" section and an "optional" section |
 | `scripts/50scrub` | Boot script for a rooted TV that applies the changes below |
+| `scripts/60launch` | Boot script for a rooted TV that applies the launch-time changes (`findings/launch.md`) |
+| `scripts/launchtime` | Measures an app's launch time on the TV |
 | `scripts/extract.sh` | Reproduces the download, decryption and extraction |
+| `scripts/lpunpack.py`, `scripts/edids.py` | Unpack an Android-style "super" partition (2024+ firmware); decode the EDIDs built into a firmware |
 
 ---
 
@@ -39,22 +46,26 @@ slightly.
 | 3 | **Home Auto Launch → Off**, set in the menu | `general.homeAutoLaunch` (on) | Stops Home from rendering at every power-on. Setting it in the menu marks the value as user-chosen, so LG's server can no longer turn it back on. |
 | 4 | **Additional Settings → Live Plus → Off** | `option.livePlus` | Stops the ACR daemon from fingerprinting what you watch, along with the ad and shopping overlays drawn over TV and HDMI. |
 | 5 | **User Agreements:** withdraw **Viewing Information**, **Interest-Based Advertising** and **Voice Information** (keep voice if you use it) | `eulaStatus.acrOnAllowed`, `additionalDataAllowed`, `customAdAllowed`, `voiceAllowed` | These are the real off switches for ACR, the viewing-history upload and personalized ads (§3). |
-| 6 | **Limit Ad Tracking On**, **Do Not Sell My Personal Information On**, Ad Cookie Off, reset the Ad ID | `general.lmt` (off), `doNotSellMyPersonalInformation` (off), `adCookie` (on) | These are sent as flags alongside the ad ID. They do not stop collection. |
+| 6 | **Limit Ad Tracking On**, **Do Not Sell My Personal Information On**, Ad Cookie Off, reset the Ad ID | `general.lmt` (off), `doNotSellMyPersonalInformation` (off), `adCookie` (on) | These are sent as flags alongside the ad ID. They do not stop collection: in admanager, LMT and Do Not Sell only switch frequency capping, and trackers still fire. A reset gives a new ad ID, but LG logs the reset and sends the permanent device ID with ad requests, so it only hides you from third parties. |
 | 7 | **AI Service → AI Recommendation Off**; Sports Alert Off; Screen Saver Promotion Off; Live Promotion Off | `general.aiNudge` (on), `sportsAlarm`, `general.screenSaverAd` (on), `option.livePromotion` (on) | Fewer background services and pop-ups. |
 | 8 | **Cold reboot about weekly** if Quick Start+ is on (unplug for 1 minute) | `option.quickStartMode` | Quick Start+ resumes a saved memory image, so memory fragmentation, zram contents and leaks build up across weeks of "off". |
 | 9 | Turn off **Mobile TV On / LG Connect Apps / AirPlay** if unused | `allowMobileDeviceAccess` (true) | Closes LAN port 3001 and the open DIAL app-launch ports (§3.6). |
-| 10 | **Router DNS:** load the "safe" section of `blocklist.txt` | — | Blocks Alphonso ACR, LG ad, crash/analytics, viewing-log and remote-diagnostic hosts. **Don't block `*.lgtvsdp.com` or `snu.lge.com`**: that breaks the app store and security updates. Use `0.0.0.0` answers, not NXDOMAIN. If Home gets slower after blocking, unblock `recommend`/`nudge.lgtvcommon.com`; Home waits up to 3 s for its shelves. |
+| 10 | **Router DNS:** load the "safe" section of `blocklist.txt` | — | Blocks Alphonso ACR, LG ad, crash/analytics, viewing-log and remote-diagnostic hosts. **Don't block `*.lgtvsdp.com` or `snu.lge.com`**: that breaks the app store and security updates. Use `0.0.0.0` answers rather than silently dropping traffic, so blocked calls fail fast. If Home gets slower after blocking, unblock `recommend`/`nudge.lgtvcommon.com`; Home waits up to 3 s for its shelves. |
+| 11 | **Don't enable Google Assistant or Alexa** unless you want them | `requiredEULA: voice2` | Their agreement group includes Viewing Information, so enabling either one turns on the viewing-history upload and full analytics. LG's own voice doesn't (`findings/privacy_deep_dive.md` §5.1). |
+| 12 | **Wired TV: turn Wi-Fi off.** Give your phone a non-personal Bluetooth name before using the TV as a speaker. Use neutral names for the TV and Home Dashboard devices | — | ACR can locate the home from nearby Wi-Fi access points. The phone's Bluetooth name and Home Dashboard device names go to LG's analytics with only the Terms of Use accepted (§6.1–6.2). |
+| 13 | **In the LG browser, don't sign in to sites and don't use Bing** | — | The browser makes its cookie and password store readable by every process on the TV, and Bing suggestions go out over plain HTTP (§7.2). |
 
 ### Tier 2: rooted TV (e.g. webosbrew / Homebrew Channel)
 
-Install `scripts/50scrub` as `/var/lib/webosbrew/init.d/50scrub` (chmod 755). The name must not contain a
+Install `scripts/50scrub` as `/var/lib/webosbrew/init.d/50scrub` (chmod 755), and `scripts/60launch` next to it for
+launch speed (set `PRELOAD_APPS` at its top to your own apps). The name must not contain a
 dot. The rootfs is read-only squashfs and the image runs **systemd** (`/sbin/init → systemd`; the
 `etc/init/*.conf` upstart files are leftovers that are never read). Every change is applied at runtime on each
 boot, so deleting the script and rebooting reverts it.
 
 | # | Change | Mechanism | Benefit / risk |
 |---|---|---|---|
-| R1 | Preload at most 2 apps (stock limit is 6 on 4K panels) | `luna-send … config/setConfigs {"com.webos.service.preloadmanager.maxPreloadApp":2}` | **Biggest RAM saving:** frees roughly 150–400 MB that Netflix, YouTube, Prime, the browser and others hold, and stops the cycle of killing and re-preloading them. The trade-off is that cold launches take 2–8 s. |
+| R1 | Preload only the apps you use (`scripts/60launch`) instead of LG's mix of 6 | `setConfigs` of `com.webos.service.preloadmanager.supportAppList`, all pinned | Keeps your 2–3 main apps warm, so a launch is a window raise instead of a 5–10 s cold start. About the same RAM as stock. An earlier version of this table cut preloading to 2 apps for RAM; that makes YouTube and Prime cold-start every time (`findings/launch.md` §3). |
 | R2 | Lower debug-level log contexts to warning | `PmLogCtl set <ctx> warning` (about 70 contexts ship at debug, including the bus and remote input) | `/var/log` is ramfs, so logs are never swapped and have no size cap. Low risk. |
 | R3 | Stop the viewing-history, crash-upload, ThinQ, sports and Control4 daemons | `systemctl stop` + `systemctl mask --runtime` | Fewer resident processes and less upload traffic. Each one removes its feature. |
 | R4 | Kill the ACR, ad-overlay and shopping-overlay daemons for this boot | `pkill acr2 adoverlay-service livepick-plus admanager` | Belt-and-braces on top of Tier 1 #4–5. |
@@ -79,7 +90,7 @@ nothing, because none of them is ever started.
 5. **Network burst on wake.** On resume or reconnect, sdx, admanager, livepick-plus, care365, sportsalert, membership, igallery, aiservice, multiview and livemenu all start together, right when you start pressing buttons.
 6. **About 117 long-running units at boot**, including forced-on `iot-client`, contentminer, user-context-manager + nudge, the voice stack, sportsalarm, miracast, dmr and sddp.
 7. **No CPU isolation for the UI.** There are no cpusets or CPU shares, and `webos-bluetooth-service` runs at `Nice=-20`.
-8. **Platform limits you can't change:** Chromium 68 (2018) for web apps, Qt 5 with `WEBOS_GL_DISABLE_THREADED_RENDERING=1`, a 32-bit userland and a `CONFIG_HZ=100` kernel. The CPU governor is already `performance`.
+8. **Platform limits you can't change:** Chromium 68 (2018) for web apps, Qt 5 with `WEBOS_GL_DISABLE_THREADED_RENDERING=1`, a 32-bit userland on 4× Cortex-A55 and a `CONFIG_HZ=100` kernel. CPU frequency and core hotplug are run by LG's own PMS governor, not cpufreq, so whether cores are parked at idle is unverified (`findings/launch.md` §6).
 9. **eMMC:** all four db8 databases use `sync=1`, with CFQ idling.
 10. **Long uptime under Quick Start+** (see change #8).
 
@@ -160,10 +171,26 @@ Push-to-talk audio streams to cloud speech-to-text (ThinQ AI `/voice/stt/v1/dict
 Alexa/Google, gated by `voiceAllowed`. **The CX has no far-field microphone** (`supportVoiceLongDistance:
 false`), so there is no always-listening path.
 
+
+### 3.8 Second pass (`findings/privacy_deep_dive.md`)
+- **ACR is unauthenticated:** the Alphonso SDK disables TLS certificate and hostname checks on every request, including fingerprints and location.
+  It also sends the BSSID and signal of every Wi-Fi network the TV can hear to Alphonso's location service, which returns your lat/long and zip.
+- **The device ID is permanent:** the LGUDID sits on a raw eMMC partition that factory reset doesn't touch. The "hashed MAC" is an unsalted
+  SHA-512 of the MAC, so it is reversible. Store apps at partner trust can likely read both.
+- **Factory reset keeps** Bluetooth pairings, marketing-consent history, per-channel watch time and probably the db8 viewing history.
+- **Wi-Fi passwords are stored with a hard-coded Blowfish key.** The ThinQ refresh token and HomeKit password are written to `/var/log`
+  at info level, which crash reports upload.
+- **sdx's first requests and its server-domain list download skip certificate checks.** LG's CA bundle trusts 222 roots, including
+  several that browsers have distrusted.
+- **LG's server decides which Live TV/HDMI sources are watch-logged.** The only consent check is in the Live TV app's UI code.
+  The server can also hide the Home Auto Launch menu item and move sdx's endpoints.
+
 ---
 
 ## 4. Other findings
 
+- **Hue Sync TV** (`findings/huesync.md`). The C3 firmware ships most of the TV-side support (bridge service, histogram API, a Hue allowlist entry) but its capture library never calls the histogram hardware. Its exclusion looks like a model-year store decision on capable hardware, but that is not proven. The CX lacks the histogram API and the Hue bridge service, and its capture path refuses protected video. Rooted CX owners can use PicCap/hyperion-webos with Hyperion.NG's Hue Entertainment output instead.
+- **Quick Media Switching can't be backported** (`findings/qms.md`). On the C3/C4 it runs from a feature flag down through the EDID writer, a mode-change callback and the kernel's HDMI 2.1 receiver. The CX kernel has only leftover status fields, the kernel can't be replaced, and LG left even the 2022 C2 platform off.
 - **Stale security stack** (`findings/versions.md`):
   - The image was built in 2026 but the userland dates from 2017–2018: kernel 4.4.84, OpenSSL 1.0.2p, curl 7.61,
     **Chromium 68**, Node 8.12, connman 1.35, wpa_supplicant 2.6.
@@ -191,7 +218,8 @@ false`), so there is no always-listening path.
   restart.
 - The real ACR capture rate and upload cadence, which are server-provisioned. A packet capture with Live Plus on
   vs off would settle it.
-- Actual frame-time and RAM gains from Basic Home and `maxPreloadApp: 2`. Measure with `free` and
-  `/proc/meminfo` before and after.
+- Actual frame-time and RAM gains from Basic Home. Measure with `free` and `/proc/meminfo` before and after.
+- Actual launch times before and after `scripts/60launch` (`scripts/launchtime`), and the other launch
+  questions in `findings/launch.md` §8.
 - Whether this firmware is still rootable. Check webosbrew's compatibility list for 04.64.00; newer CX firmware
   has patched the earlier exploits.
