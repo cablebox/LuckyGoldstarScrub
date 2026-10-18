@@ -1,0 +1,9 @@
+dir: 33.31.69.01-HE_DTV_W24G_AFABATAA
+Rockhopper release 10.3.1-3007 (ponytail-papikonda)
+ID=starfish
+NAME="webOS TV"
+VERSION="10.3.1"
+VERSION_ID=10.3.1
+PRETTY_NAME="webOS TV 10.3.1"
+Linux version 5.4.268-329.ptl4tv.5 (oe-user@oe-host) (gcc version 11.4.0 (GCC)) #1 SMP PREEMPT Mon Sep 8 05:02:25 UTC 2025
+bsppart.unsquashfs fonts.unsquashfs kernel.pak kernel.pak.unlz4 license.pak.unsquashfs logo.pak.unlz4 otncabi.unsquashfs otycabi.unsquashfs partinfo.pak partinfo.txt rootfs.unsquashfs superx 

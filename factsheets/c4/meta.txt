@@ -1,0 +1,9 @@
+dir: 23.23.30.01-HE_DTV_W24G_AFABATAA
+Rockhopper release 9.2.4-48 (ombre-okapi)
+ID=starfish
+NAME="webOS TV"
+VERSION="9.2.4"
+VERSION_ID=9.2.4
+PRETTY_NAME="webOS TV 9.2.4"
+Linux version 5.4.268-320 (oe-user@oe-host) (gcc version 11.3.0 (GCC)) #1 SMP PREEMPT Mon Jun 17 01:25:25 UTC 2024
+bsppart.unsquashfs dpmeta.pak dtbpak.pak gaming-micom.pak intmicom.pak kernel.pak kernel.pak.unlz4 license.pak license.pak.unsquashfs logo.pak logo.pak.unlz4 lxboot.pak partinfo.pak partinfo.txt rootfs.unsquashfs secureboot.pak sedata.pak super swue.pak swue.pak.unsquashfs tzfw.pak 

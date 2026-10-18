@@ -1,0 +1,9 @@
+dir: 03.53.45.01-HE_DTV_W21O_AFABATAA
+Rockhopper release 6.5.3-47 (kisscurl-koli)
+ID="starfish"
+NAME="webOS TV"
+VERSION="6.5.3"
+VERSION_ID="6.5.3"
+PRETTY_NAME="webOS TV 6.5.3"
+Linux version 4.4.84-229.kcl4tv.6 (oe-user@oe-host) (gcc version 8.2.0 (GCC) ) #1 SMP PREEMPT Sat Sep 13 08:10:48 UTC 2025
+bsppart.pak.unsquashfs fonts.pak.unsquashfs kernel.pak kernel.pak.unlz4 license.pak.unsquashfs logo.pak.unlz4 otncabi-global.pak.unsquashfs otycabi-global.pak.unsquashfs partinfo.pak partinfo.txt rootfs.pak.unsquashfs swue.pak.unsquashfs 

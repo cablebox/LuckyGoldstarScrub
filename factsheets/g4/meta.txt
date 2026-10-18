@@ -1,0 +1,10 @@
+dir: 43.21.71.01-HE_DTV_W24O_AFABATAA
+Rockhopper release 11.2.0-3701 (queue-qilian)
+ID=starfish
+NAME="webOS TV"
+VERSION="11.2.0"
+VERSION_ID=11.2.0
+PRETTY_NAME="webOS TV 11.2.0"
+CPE_NAME="cpe:/o:openembedded:starfish:11.2.0"
+Linux version 6.12.44-352 (oe-user@oe-host) (aarch64-webos-linux-gcc (GCC) 13.3.0, GNU ld (GNU Binutils) 2.42.0.20240723) #1 SMP PREEMPT Fri Jun 12 01:43:56 UTC 2026
+bsppart.unsquashfs fonts.unsquashfs kernel.pak kernel.pak.unlz4 license.pak.unsquashfs logo.pak.unlz4 otncabi.unsquashfs otycabi.unsquashfs partinfo.pak partinfo.txt rootfs.unsquashfs superx 

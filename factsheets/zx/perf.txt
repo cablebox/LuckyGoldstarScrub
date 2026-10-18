@@ -1,0 +1,161 @@
+--- preloadmanager
+etc/configd/layers/distro/hd1080-lite/com.webos.service.preloadmanager.json: "maxPreloadApp":4 
+etc/configd/layers/distro/hd1080-normal/com.webos.service.preloadmanager.json: "maxPreloadApp":6 
+etc/configd/layers/distro/hd2160-lite/com.webos.service.preloadmanager.json: "maxPreloadApp":5 
+etc/configd/layers/distro/hd2160-normal/com.webos.service.preloadmanager.json: "maxPreloadApp":6 
+etc/configd/layers/base/com.webos.service.preloadmanager.json: 
+--- distro variant (configd.service)
+Environment=WEBOS_TARGET_DISTRO_VARIANT=normal
+--- memchute / memory configd
+## etc/configd/layers/base/com.webos.memorymanager.json: {"clearBackgroundApp":false}
+## etc/configd/layers/distro/hd2160-lite/com.webos.memorymanager.json: {"clearBackgroundApp":true}
+## etc/configd/layers/distro/hd2160-mini/com.webos.memorymanager.json: {"clearBackgroundApp":true}
+--- memory manager
+## etc/palm/memorymanager-conf.json
+{
+    "PriorityArib":[
+        "com.palm.app.settings",
+        "com.webos.app.tvguidejpn"
+    ],
+    "NoLaunchThreshold": [
+        "com.webos.app.voice",
+        "com.webos.app.tvhotkey",
+        "com.webos.app.fingergesture",
+        "com.webos.app.container",
+        "com.webos.app.commercial.alert",
+        "com.webos.app.ism"
+    ],
+    "NoLaunchThresholdLite": [
+        "com.webos.app.membership",
+        "com.webos.app.adapp",
+        "com.webos.app.commercial.alert",
+        "com.webos.app.ism"
+    ],
+    "InputList":[
+        "com.webos.app.livetv",
+        "netflix",
+        "com.webos.app.inputcommon"
+    ],
+    "InputListLite":[
+        "com.webos.app.livetv",
+        "com.webos.app.inputcommon",
+        "netflix",
+        "com.webos.app.miracast",
+        "airplay"
+    ],
+    "KeepOnLaunch":[
+        "com.webos.app.systemmusic",
+        "com.webos.app.voice"
+    ],
+    "KeepOnLaunchEx":[
+        "com.webos.app.home",
+        "com.webos.app.fullhome",
+        "google.assistant"
+    ],
+    "KeepAlive":[
+        "com.webos.app.livehbbtv",
+        "com.webos.app.livedmost",
+        "com.webos.app.liveibb"
+    ],
+    "KeepAppHib":[
+    ],
+    "EfsTarget":[
+        "youtube.leanback.v4",
+        "jp.co.plala.hikari.start",
+        "com.webos.app.browser",
+        "vudu",
+        "airplay",
+        "netflix",
+        "amazon"
+    ],
+    "ExtraMemUnits":[
+        "videothumbnailer"
+    ],
+    "PriorityGroup":[
+        {
+            "PriorityString":"PG_TYPE_BASE",
+     
+--- zram / sysctl
+# upstart job to enable zram configuration
+ExecStart=/lib/systemd/system/scripts/zram-on.sh
+--- Nice/CPU settings in units
+activitymanager.service:OOMScoreAdjust=-500
+activitymanager.service:OOMScoreAdjust=-500
+appinstalld.service:OOMScoreAdjust=-500
+appinstalld.service:OOMScoreAdjust=-500
+arccontroller.service:OOMScoreAdjust=-500
+audiod.service:OOMScoreAdjust=-500
+audiod.service:OOMScoreAdjust=-500
+audiooutputd.service:OOMScoreAdjust=-500
+booster.service:OOMScoreAdjust=-500
+bootd.service:Nice=-20
+bootd.service:Nice=-20
+bootd.service:OOMScoreAdjust=-1000
+bootd.service:OOMScoreAdjust=-1000
+bthidmanager.service:OOMScoreAdjust=-1000
+bugreportd.service:OOMScoreAdjust=-500
+com.example.service.native.service:OOMScoreAdjust=-500
+com.example.service.native2.service:OOMScoreAdjust=-500
+com.example.service.native3.service:OOMScoreAdjust=-500
+com.webos.service.appcts.service:OOMScoreAdjust=-500
+configd.service:OOMScoreAdjust=-1000
+configd.service:OOMScoreAdjust=-1000
+connman.service:OOMScoreAdjust=-500
+contentminer.service:OOMScoreAdjust=-1000
+crashd.service:OOMScoreAdjust=-500
+crashreportd.service:OOMScoreAdjust=-500
+db8-epgdb.service:OOMScoreAdjust=-900
+db8-epgdb.service:OOMScoreAdjust=-900
+db8-epgdb.service:OOMScoreAdjust=-900
+db8-maindb.service:OOMScoreAdjust=-900
+db8-maindb.service:OOMScoreAdjust=-900
+db8-mediadb.service:OOMScoreAdjust=-900
+db8-mediadb.service:OOMScoreAdjust=-900
+db8-tempdb.service:OOMScoreAdjust=-900
+db8-tempdb.service:OOMScoreAdjust=-900
+dbus.service:OOMScoreAdjust=-900
+dbus.service:OOMScoreAdjust=-900
+dmost.service:OOMScoreAdjust=-500
+dmost.service:OOMScoreAdjust=-500
+dmr.service:OOMScoreAdjust=-500
+dropbear.service:OOMScoreAdjust=-500
+eim.service:OOMScoreAdjust=-500
+eim.service:OOMScoreAdjust=-500
+emmcd.service:OOMScoreAdjust=0
+eplmanager.service:OOMScoreAdjust=-1000
+event-monitor.service:OOMScoreAdjust=-500
+externaldecodercontroller.service:OOMScoreAdjust=-500
+factorywin.service:Nice=-20
+faultmanager.service:OOMScoreAdjust=-1000
+iepg.service:OOMScoreAdjust=-500
+iepg.service:OOMScoreAdjust=-500
+lginput2.service:OOMScoreAdjust=-1000
+ls-hubd.service:OOMScoreAdjust=-1000
+luna-download-mgr.service:OOMScoreAdjust=-500
+luna-sys-service.service:OOMScoreAdjust=-500
+maliit-server.service:OOMScoreAdjust=0
+memchute.service:OOMScoreAdjust=-1000
+memchute.service:OOMScoreAdjust=-1000
+nabs.service:OOMScoreAdjust=-1000
+nn-proxy.service:OOMScoreAdjust=0
+nopd.service:OOMScoreAdjust=-500
+--- PmLog default levels
+74
+--- WAM / Chromium flags
+--- kernel
+CONFIG_ARM64=y
+CONFIG_PSI=y
+CONFIG_PREEMPT_RCU=y
+CONFIG_NR_CPUS=4
+CONFIG_PREEMPT=y
+CONFIG_PREEMPT_COUNT=y
+CONFIG_HZ=100
+CONFIG_SCHED_HRTICK=y
+CONFIG_ZSMALLOC=y
+CONFIG_CPU_FREQ_DEFAULT_GOV_PERFORMANCE=y
+CONFIG_CMA_SIZE_MBYTES=0
+CONFIG_CMA_SIZE_SEL_MBYTES=y
+CONFIG_ZRAM=y
+CONFIG_SCHED_DEBUG=y
+CONFIG_SCHED_INFO=y
+CONFIG_DEBUG_PREEMPT=y

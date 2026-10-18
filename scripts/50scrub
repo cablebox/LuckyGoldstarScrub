@@ -43,13 +43,18 @@ rm -f /var/log/iot-client-log*
 #     apps for preloading and memchute's kill order; 60launch pins preloads and turns memchute's
 #     ranking off so masking it doesn't slow launches. Without 60launch, consider keeping it.
 #   rdxd/uploadd: crash/analytics uploads    iot-client: ThinQ
-#   sportsalarm: sports alerts                webos-sddp: Control4 discovery
+#   webos-sddp: Control4 discovery
 #   dmost: reads the ad ID, LGUDID and MACs at every boot, but its service isn't offered in the US
 # Do NOT add memchute, sam, configd, surface-manager, WebAppMgr, db8*, settings-service,
 # second-screen-gateway or tvservicemock.
-for u in user-context-manager nudge rdxd uploadd iot-client sportsalarm webos-sddp dmost; do
+for u in user-context-manager nudge rdxd uploadd iot-client webos-sddp dmost; do
   systemctl stop "$u.service"; systemctl mask --runtime "$u.service"
 done
+# sportsalarm (sports alerts) has no systemd unit: ls-hubd starts it on demand from its luna service
+# file, so blank that file for this boot instead.
+f=/usr/share/luna-service2/services.d/com.webos.service.sportsalarm.service
+[ -f "$f" ] && mount --bind /dev/null "$f" && ls-control scan-services
+pkill -x sportsalarm
 
 # --- Privacy: kill the ACR / ad overlay stack for this boot ---
 pkill -f /usr/sbin/acr2; pkill -f adoverlay-service; pkill -f livepick-plus; pkill -x admanager
