@@ -14,6 +14,7 @@ extracted rootfs.
 |---|---|
 | `REPORT.md` | This summary: what to change, what is slow, how the TV phones home |
 | `findings/performance.md` | Boot, memory, preload, logging, scheduling and I/O analysis with 17 ranked changes |
+| `findings/launch.md` | App launch time: what a launch waits on and how to get the apps you use under 3 s |
 | `findings/ui_apps.md` | Home launcher, Live TV/HDMI shell and Settings: per-launch network traffic and timers |
 | `findings/acr.md` | Automatic Content Recognition (Alphonso) and the ad and overlay pipeline |
 | `findings/telemetry.md` | sdx cloud broker, crash and analytics uploads, viewing logs, ads, voice, LAN exposure |
@@ -21,6 +22,8 @@ extracted rootfs.
 | `findings/versions.md` | Component versions, CA bundle, debug leftovers |
 | `blocklist.txt` | Hosts-format DNS blocklist: a "safe" section and an "optional" section |
 | `scripts/50scrub` | Boot script for a rooted TV that applies the changes below |
+| `scripts/60launch` | Boot script for a rooted TV that applies the launch-time changes (`findings/launch.md`) |
+| `scripts/launchtime` | Measures an app's launch time on the TV |
 | `scripts/extract.sh` | Reproduces the download, decryption and extraction |
 
 ---
@@ -47,14 +50,15 @@ slightly.
 
 ### Tier 2: rooted TV (e.g. webosbrew / Homebrew Channel)
 
-Install `scripts/50scrub` as `/var/lib/webosbrew/init.d/50scrub` (chmod 755). The name must not contain a
+Install `scripts/50scrub` as `/var/lib/webosbrew/init.d/50scrub` (chmod 755), and `scripts/60launch` next to it for
+launch speed (set `PRELOAD_APPS` at its top to your own apps). The name must not contain a
 dot. The rootfs is read-only squashfs and the image runs **systemd** (`/sbin/init → systemd`; the
 `etc/init/*.conf` upstart files are leftovers that are never read). Every change is applied at runtime on each
 boot, so deleting the script and rebooting reverts it.
 
 | # | Change | Mechanism | Benefit / risk |
 |---|---|---|---|
-| R1 | Preload at most 2 apps (stock limit is 6 on 4K panels) | `luna-send … config/setConfigs {"com.webos.service.preloadmanager.maxPreloadApp":2}` | **Biggest RAM saving:** frees roughly 150–400 MB that Netflix, YouTube, Prime, the browser and others hold, and stops the cycle of killing and re-preloading them. The trade-off is that cold launches take 2–8 s. |
+| R1 | Preload only the apps you use (`scripts/60launch`) instead of LG's mix of 6 | `setConfigs` of `com.webos.service.preloadmanager.supportAppList`, all pinned | Keeps your 2–3 main apps warm, so a launch is a window raise instead of a 5–10 s cold start. About the same RAM as stock. An earlier version of this table cut preloading to 2 apps for RAM; that makes YouTube and Prime cold-start every time (`findings/launch.md` §3). |
 | R2 | Lower debug-level log contexts to warning | `PmLogCtl set <ctx> warning` (about 70 contexts ship at debug, including the bus and remote input) | `/var/log` is ramfs, so logs are never swapped and have no size cap. Low risk. |
 | R3 | Stop the viewing-history, crash-upload, ThinQ, sports and Control4 daemons | `systemctl stop` + `systemctl mask --runtime` | Fewer resident processes and less upload traffic. Each one removes its feature. |
 | R4 | Kill the ACR, ad-overlay and shopping-overlay daemons for this boot | `pkill acr2 adoverlay-service livepick-plus admanager` | Belt-and-braces on top of Tier 1 #4–5. |
@@ -79,7 +83,7 @@ nothing, because none of them is ever started.
 5. **Network burst on wake.** On resume or reconnect, sdx, admanager, livepick-plus, care365, sportsalert, membership, igallery, aiservice, multiview and livemenu all start together, right when you start pressing buttons.
 6. **About 117 long-running units at boot**, including forced-on `iot-client`, contentminer, user-context-manager + nudge, the voice stack, sportsalarm, miracast, dmr and sddp.
 7. **No CPU isolation for the UI.** There are no cpusets or CPU shares, and `webos-bluetooth-service` runs at `Nice=-20`.
-8. **Platform limits you can't change:** Chromium 68 (2018) for web apps, Qt 5 with `WEBOS_GL_DISABLE_THREADED_RENDERING=1`, a 32-bit userland and a `CONFIG_HZ=100` kernel. The CPU governor is already `performance`.
+8. **Platform limits you can't change:** Chromium 68 (2018) for web apps, Qt 5 with `WEBOS_GL_DISABLE_THREADED_RENDERING=1`, a 32-bit userland on 4× Cortex-A55 and a `CONFIG_HZ=100` kernel. CPU frequency and core hotplug are run by LG's own PMS governor, not cpufreq, so whether cores are parked at idle is unverified (`findings/launch.md` §6).
 9. **eMMC:** all four db8 databases use `sync=1`, with CFQ idling.
 10. **Long uptime under Quick Start+** (see change #8).
 
@@ -191,7 +195,8 @@ false`), so there is no always-listening path.
   restart.
 - The real ACR capture rate and upload cadence, which are server-provisioned. A packet capture with Live Plus on
   vs off would settle it.
-- Actual frame-time and RAM gains from Basic Home and `maxPreloadApp: 2`. Measure with `free` and
-  `/proc/meminfo` before and after.
+- Actual frame-time and RAM gains from Basic Home. Measure with `free` and `/proc/meminfo` before and after.
+- Actual launch times before and after `scripts/60launch` (`scripts/launchtime`), and the other launch
+  questions in `findings/launch.md` §8.
 - Whether this firmware is still rootable. Check webosbrew's compatibility list for 04.64.00; newer CX firmware
   has patched the earlier exploits.

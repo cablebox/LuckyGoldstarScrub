@@ -2,8 +2,7 @@
 # Boot-time tuning for a ROOTED LG CX (webOS 5, firmware 04.64.00).
 # Install as /var/lib/webosbrew/init.d/50scrub (chmod 755; the name must not contain a dot,
 # or run-parts skips it). Every block is independent: delete the ones you don't want.
-# Everything here is volatile (re-applied each boot); to revert, delete this file and reboot,
-# then run the setConfigs call below with maxPreloadApp 6 in case configd persisted it.
+# Everything here is volatile (re-applied each boot); to revert, delete this file and reboot.
 # UNTESTED ON HARDWARE: derived from static analysis of the firmware. See REPORT.md.
 
 exec >>/tmp/50scrub.log 2>&1
@@ -20,10 +19,9 @@ luna-send -n 1 luna://com.webos.service.settings/setSystemSettings \
 # luna-send -n 1 luna://com.webos.service.settings/setSystemSettings \
 #   '{"category":"general","settings":{"defaultApps":{"home":"com.webos.app.home"}}}'
 
-# --- Performance: preload at most 2 apps instead of 6 (biggest RAM win) ---
-luna-send -n 1 luna://com.webos.service.config/setConfigs \
-  '{"configs":{"com.webos.service.preloadmanager.maxPreloadApp":2}}'
-systemctl restart preload-manager.service
+# --- Preloading: see scripts/60launch, which replaces LG's mix with the apps you use ---
+# (An earlier version capped maxPreloadApp at 2 here. That saves RAM but makes YouTube and Prime
+# cold-start every time; findings/launch.md section 3.)
 
 # --- Performance: drop debug-level log contexts (logs live in unswappable ramfs) ---
 for c in ls-hubd.debug ls-hubd.distinct acr ADMANAGER adoverlay-service IEPG lginput2 gmwl.dbg \
@@ -33,7 +31,9 @@ for c in ls-hubd.debug ls-hubd.distinct acr ADMANAGER adoverlay-service IEPG lgi
 done
 
 # --- Privacy + performance: stop optional daemons (each removes its feature) ---
-#   user-context-manager/nudge: viewing-history upload + AI nudges
+#   user-context-manager/nudge: viewing-history upload + AI nudges. user-context-manager also ranks
+#     apps for preloading and memchute's kill order; 60launch pins preloads and turns memchute's
+#     ranking off so masking it doesn't slow launches. Without 60launch, consider keeping it.
 #   rdxd/uploadd: crash/analytics uploads    iot-client: ThinQ
 #   sportsalarm: sports alerts                webos-sddp: Control4 discovery
 # Do NOT add memchute, sam, configd, surface-manager, WebAppMgr, db8*, settings-service,
