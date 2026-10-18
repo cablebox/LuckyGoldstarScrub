@@ -189,7 +189,7 @@ false`), so there is no always-listening path.
 
 ## 4. Other findings
 
-- **Hue Sync TV** (`findings/huesync.md`). The C3 firmware already ships the TV-side support and allowlists the Hue app by name, so its exclusion is a model-year store decision. The CX lacks the histogram API and the Hue bridge service, and its capture path refuses protected video. Rooted CX owners can use PicCap/hyperion-webos with Hyperion.NG's Hue Entertainment output instead.
+- **Hue Sync TV** (`findings/huesync.md`). The C3 firmware ships most of the TV-side support (bridge service, histogram API, a Hue allowlist entry) but its capture library never calls the histogram hardware. Its exclusion looks like a model-year store decision on capable hardware, but that is not proven. The CX lacks the histogram API and the Hue bridge service, and its capture path refuses protected video. Rooted CX owners can use PicCap/hyperion-webos with Hyperion.NG's Hue Entertainment output instead.
 - **Quick Media Switching can't be backported** (`findings/qms.md`). On the C3/C4 it runs from a feature flag down through the EDID writer, a mode-change callback and the kernel's HDMI 2.1 receiver. The CX kernel has only leftover status fields, the kernel can't be replaced, and LG left even the 2022 C2 platform off.
 - **Stale security stack** (`findings/versions.md`):
   - The image was built in 2026 but the userland dates from 2017–2018: kernel 4.4.84, OpenSSL 1.0.2p, curl 7.61,
