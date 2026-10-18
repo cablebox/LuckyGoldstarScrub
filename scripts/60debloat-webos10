@@ -1,0 +1,72 @@
+#!/bin/sh
+# Debloat for a ROOTED LG C3 on webOS 10.3 (firmware 33.31.68): hide launcher-visible
+# preloaded apps without touching the read-only rootfs. Mechanism (verified against the
+# extracted image 2026-10-18): launcher visibility is the appinfo.json "visible" flag
+# (e.g. com.webos.app.factorywin/store-demo/fooddeliveryhdmi*/tvuserguide/newandhot ship
+# "visible": false; apps with no key, like nais, are visible). We bind-mount an edited
+# appinfo.json over each target for this boot, then rescan.
+# UNTESTED ON HARDWARE until first root run. Full app list: factsheets/c3/apps.txt.
+# Install as /var/lib/webosbrew/init.d/60debloat (chmod 755, no dots in the name).
+# Volatile: delete the file and reboot to restore every app.
+
+exec >>/tmp/60debloat.log 2>&1
+sleep 60   # after 50scrub; let WAM finish first scan
+
+# Target apps (edit to taste — launcher/ad bloat candidates from factsheets/c3/apps.txt).
+# Do NOT list: com.webos.app.home (launcher), settings, softwareupdate, connectionwizard,
+# externalinput*, livetv*, hdmi*, notificationcenter, quicksettings, screensaver,
+# accessibility*, self-diagnosis, customersupport, securitycenter, magicnum/remoteservice.
+APPS="
+com.webos.app.nais
+com.webos.app.naishdmi1
+com.webos.app.naishdmi2
+com.webos.app.naishdmi3
+com.webos.app.naishdmi4
+com.webos.app.adhdmi1
+com.webos.app.adhdmi2
+com.webos.app.adhdmi3
+com.webos.app.adhdmi4
+com.webos.app.adoverlayex
+com.webos.app.videoads
+com.webos.app.aipromotion
+com.webos.app.newandhot
+com.webos.app.fooddelivery
+com.webos.app.fooddeliveryex
+com.webos.app.sportsalarm
+com.webos.app.sportsteamsettings
+com.webos.app.gamehome
+com.webos.app.kidshome
+com.webos.app.seniorhome
+com.webos.app.totalmusic
+com.webos.app.lifeonscreen
+com.webos.app.mediadiscovery
+com.webos.app.similarlist
+com.webos.app.tvuserguide
+com.webos.app.helpandtips
+amazon.alexapr
+"
+
+for app in $APPS; do
+  d="/usr/palm/applications/$app"
+  [ -f "$d/appinfo.json" ] || continue
+  tmp="/tmp/appinfo.$app.json"
+  # Force "visible": false — flip the key if present, insert it if absent.
+  sed 's/"visible"[[:space:]]*:[[:space:]]*true/"visible":false/' "$d/appinfo.json" > "$tmp"
+  if ! grep -q '"visible"[[:space:]]*:[[:space:]]*false' "$tmp"; then
+    sed 's/^{/{\n\t"visible": false,/' "$d/appinfo.json" > "$tmp"
+  fi
+  grep -q '"visible"[[:space:]]*:[[:space:]]*false' "$tmp" || { echo "skip $app (edit failed)"; continue; }
+  cp "$tmp" "/tmp/debloat.$app.json"
+  mount --bind "/tmp/debloat.$app.json" "$d/appinfo.json" || { echo "bind failed: $app"; continue; }
+  echo "hidden: $app"
+done
+
+# Make SAM/WAM re-read app metadata (app list refresh), then restart the launcher app.
+luna-send -n 1 luna://com.webos.applicationManager/closeAllApps '{}' 2>/dev/null
+pkill -x sam 2>/dev/null                 # sam restarts on demand and rescans appinfo
+pkill -f com.webos.app.home 2>/dev/null  # Home relaunches itself
+
+# NOTE for the first live run: verify with
+#   luna-send -n 1 luna://com.webos.applicationManager/listApps '{}' | grep -c '"id"'
+# and visual check that Home still renders. If the launcher breaks, delete this script
+# and reboot — everything here is boot-volatile.

@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<body>
+<div id="sink" style="display:none"></div>
+  <script>
+    const sink = document.getElementById('sink');
+    const note = (t) => { sink.textContent += t + " || "; };
+    const origLog = console.log.bind(console), origErr = console.error.bind(console);
+    console.log = (...a) => { note("LOG " + a.join(" ")); origLog(...a); };
+    console.error = (...a) => { note("ERR " + a.join(" ")); origErr(...a); };
+    window.addEventListener('error', (e) => note("PAGEERR " + e.message + " @" + e.lineno));
+    note("spawning");
+    try {
+      let w = new Worker("worker_dbg.js?" + Math.random());
+      w.onerror = (e) => note("WKERR " + e.message + " @" + e.lineno + ":" + e.colno);
+      w.onmessage = (e) => note("WKMSG " + e.data);
+    } catch (ex) { note("WKCATCH " + ex); }
+    setTimeout(() => note("tick60"), 60000);
+    setTimeout(() => note("tick150"), 150000);
+  </script>
+</body>

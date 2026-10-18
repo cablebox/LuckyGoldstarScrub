@@ -1,0 +1,54 @@
+#!/bin/sh
+# Boot-time tuning for a ROOTED LG C3 on webOS 10.3 (firmware 33.31.68, o22n/papikonda).
+# Port of scripts/50scrub (CX, webOS 5); every unit/service path verified against the
+# extracted 33.31.68 rootfs on 2026-10-18 (fw/ext3368/rootfs). Differences from the CX:
+#   - systemd units now live in /etc/systemd/system (not /lib/systemd/system)
+#   - service-logger.service added (2022+ HDMI/game-session logging via sdx)
+#   - sportsalarm and livepick-plus are on-demand luna services: blank their
+#     service files for this boot instead of pkill-only
+# Install as /var/lib/webosbrew/init.d/50scrub (chmod 755, no dots in the name).
+# Everything is volatile (re-applied each boot); delete the file and reboot to revert.
+# UNTESTED ON HARDWARE until first root run — see findings/root_runbook_33.31.68.md.
+
+exec >>/tmp/50scrub.log 2>&1
+sleep 45   # let rest-boot-done, preload-manager and memchute settle
+
+# --- Privacy: force ACR / promotion settings off (same luna API as the CX recipe) ---
+luna-send -n 1 luna://com.webos.service.settings/setSystemSettings \
+  '{"category":"option","settings":{"livePlus":"off","livePromotion":"off"}}'
+luna-send -n 1 luna://com.webos.service.settings/setSystemSettings \
+  '{"category":"general","settings":{"lmt":"on","doNotSellMyPersonalInformation":"on","adCookie":"off","homePromotion":"off","homeAutoLaunch":"off","homeEffect":"off","aiNudge":"off","screenSaverAd":"off"}}'
+luna-send -n 1 luna://com.webos.service.settings/setSystemSettings \
+  '{"category":"general","settings":{"checkHomeAutoLaunchValue":"user"}}'
+
+# --- Performance: drop debug-level log contexts (present in etc/pmlog.d on 33.31.68) ---
+for c in ls-hubd.debug ls-hubd.distinct acr ADMANAGER adoverlay-service IEPG lginput2 gmwl.dbg \
+         videooutputd webos-preload-manager NLPMANAGER VOICEFW ASSISTANT THINQAI CBOX.COMMON \
+         CBOX.DB CBOX.XPA btmngr webos-bluetooth-service MIRACAST legacy-log devmode \
+         iot-client HOMEKIT ASC; do
+  PmLogCtl set "$c" warning
+done
+
+# --- Privacy: crash/analytics uploads + viewing-history/ThinQ/Control4/HDMI-logging stack ---
+#   service-logger (2022+): monthly HDMI-device inventory + game-session details via sdx
+for u in user-context-manager nudge rdxd uploadd iot-client webos-sddp dmost service-logger; do
+  systemctl stop "$u.service"; systemctl mask --runtime "$u.service"
+done
+
+# --- On-demand luna services: blank the service file for this boot (ls-hubd re-scans) ---
+for f in /usr/share/luna-service2/services.d/com.webos.service.sportsalarm.service \
+         /usr/share/luna-service2/services.d/com.webos.service.livepickplus.service; do
+  [ -f "$f" ] && mount --bind /dev/null "$f" && ls-control scan-services
+done
+pkill -x sportsalarm 2>/dev/null; pkill -f livepick-plus 2>/dev/null
+
+# --- Privacy + performance: kill the ACR / ad overlay stack for this boot ---
+pkill -f /usr/sbin/acr2 2>/dev/null; pkill -f adoverlay-service 2>/dev/null; pkill -x admanager 2>/dev/null
+# Hue Sync support (colorInfoMiner) is on-demand; leave it alone — we want Hue Sync working.
+
+# --- Performance: zram swap-in latency and reclaim headroom (kernel 5.4.268 here) ---
+echo 0 > /proc/sys/vm/page-cluster
+echo 16384 > /proc/sys/vm/min_free_kbytes
+
+# --- Performance: Bluetooth daemon ships at nice -20, above the UI ---
+renice 0 -p "$(pidof webos-bluetooth-service)" 2>/dev/null
