@@ -132,3 +132,22 @@ expat 2.4.30, lighttpd 1.4.67. Lead hypothesis: post-Chrome-120 renderer n-day f
 launch-param injection primitive (verified in this rootfs) into trusted WAM contexts. Two
 scouts (CveChromium, CveNetwork) sweeping primary sources; results land in
 `findings/cve_candidates_33.31.68.md`.
+
+## Why root cannot unblock DRM capture (checked in-image 2026-10-18)
+
+`libvtcapture.so.1` (lib32-screen-capture-webos 1.0.0-56) decides nothing itself: it embeds
+uMediaServer's `ResourceManagerClient` (`notifyForeground`, `com.webos.service.capturepermission`
+strings) and obeys the per-media-session DRM metadata the player registered. For Widevine-L1
+content the "secure" state is truthful — frames live in the TEE-protected carveout — so
+overriding the check with root yields kernel-refusal or black, not pixels. L3/software-decode
+sessions are not marked secure and are capturable without any override. Net: HDMI-source
+playback is the only route for built-in DRM apps (same as the official Hue app); root does
+not change this.
+
+## Second target confirmed (2026-10-18): the CX
+
+The other set on the LAN is the repo's original audit target, an OLED CX on firmware
+04.64.00 (webOS 5.6.2). CanI data: SlopBro unpatched at 04.64.00 — root with
+`python3 slopbro.py --webos-version 5 <CX_IP>`, then deploy the already-written
+`scripts/50scrub` + `scripts/60launch` (both authored for exactly this TV) and the
+ambient-light stack per `findings/post_root_hue_ambient.md`.
