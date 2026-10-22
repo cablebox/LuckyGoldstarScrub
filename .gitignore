@@ -1,2 +1,4 @@
 # Firmware artifacts, tooling builds, downloaded exploits — reproducible, never commit
 fw/
+slopbro/
+*.epk

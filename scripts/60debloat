@@ -1,0 +1,97 @@
+#!/bin/sh
+# Debloat for a ROOTED LG CX on webOS 5 (firmware 04.63.20): hide launcher-visible
+# preloaded apps without deleting anything. Same mechanism as 60debloat-webos10:
+# bind-mount an appinfo.json with "visible": false over each target, rescan, restart
+# the launcher. Volatile: delete this file and reboot to restore every app.
+# App list taken from the live TV 2026-10-22 (ls /usr/palm/applications).
+# Do NOT add: home, fullhome (launcher), settings, softwareupdate, connectionwizard,
+# externalinput*, livetv*, hdmi*, notificationcenter, screensaver, accessibility*,
+# self-diagnosis, customersupport, magicnum, remoteservice, photovideo, music,
+# voice*/google.assistant/amazon.alex* were added by user choice 2026-10-22 (voice off),
+# as were liveibb/liveginga/liveinteractivecontent/livemenu (broadcast interactive off),
+# roomconnect*/recordings/scheduler/dvrpopup (unused). Keep out: enactbrowser/webapphost.
+# Install as /var/lib/webosbrew/init.d/60debloat (chmod 755, no dots in the name).
+
+exec >>/tmp/60debloat.log 2>&1
+sleep 60   # after 50scrub; let WAM finish first scan
+
+APPS="
+com.webos.app.acrcomponent
+com.webos.app.acroverlay
+com.webos.app.acrhdmi1
+com.webos.app.acrhdmi2
+com.webos.app.acrhdmi3
+com.webos.app.acrhdmi4
+com.webos.app.adoverlay
+com.webos.app.adoverlayex
+com.webos.app.adhdmi1
+com.webos.app.adhdmi2
+com.webos.app.adhdmi3
+com.webos.app.adhdmi4
+com.webos.app.livepick
+com.webos.app.dangbei-card
+com.webos.app.dangbei-overlay
+com.webos.app.premium
+com.webos.app.igallery
+com.webos.app.livedmost
+com.webos.app.store-demo
+com.webos.app.sync-demo
+com.webos.app.factorywin
+com.webos.app.care365
+com.webos.app.homeconnect
+com.webos.app.sportsteamsettings
+com.webos.app.tvuserguide
+com.webos.app.weatherlocation
+com.webos.app.beanbrowser
+com.lge.app.viewster
+com.webos.app.liveibb
+com.webos.app.liveginga
+com.webos.app.liveinteractivecontent
+com.webos.app.livemenu
+com.webos.app.roomconnect
+com.webos.app.roomconnect-full
+com.webos.app.recordings
+com.webos.app.scheduler
+com.webos.app.dvrpopup
+com.webos.app.voice
+com.webos.app.voiceagent
+com.webos.app.voiceweb
+google.assistant
+amazon.alexapr
+amazon.alexa.view
+com.webos.app.softwareupdate
+"
+
+for app in $APPS; do
+  d="/usr/palm/applications/$app"
+  [ -f "$d/appinfo.json" ] || { echo "absent: $app"; continue; }
+  tmp="/tmp/appinfo.$app.json"
+  # Force "visible": false - flip the key if present, insert it if absent.
+  sed 's/"visible"[[:space:]]*:[[:space:]]*true/"visible":false/' "$d/appinfo.json" > "$tmp"
+  if ! grep -q '"visible"[[:space:]]*:[[:space:]]*false' "$tmp"; then
+    sed 's/^{/{\n\t"visible": false,/' "$d/appinfo.json" > "$tmp"
+  fi
+  grep -q '"visible"[[:space:]]*:[[:space:]]*false' "$tmp" || { echo "skip $app (edit failed)"; continue; }
+  cp "$tmp" "/tmp/debloat.$app.json"
+  mount --bind "/tmp/debloat.$app.json" "$d/appinfo.json" || { echo "bind failed: $app"; continue; }
+  echo "hidden: $app"
+done
+
+# Refresh the launcher ribbon. webOS 5 live-tested 2026-10-22: do NOT pkill sam -
+# SAM has no on-demand relaunch on this firmware, and its death takes fullhome (its
+# child process) with it = permanent black screen until reboot. Do NOT closeAllApps
+# either: it closes the foreground INPUT app too (live-observed 2026-10-22: user's
+# input went black and was not restored). A fullhome-only restart refreshes the ribbon
+# without touching inputs. NOTE: pidof fullhome is ALWAYS empty on this box (comm
+# truncation to "com.webos.app.f") - use pgrep -f.
+pkill -f com.webos.app.fullhome 2>/dev/null
+
+# Safety net: wait up to 60s for SAM to relaunch fullhome; ask explicitly if it stalls.
+n=0
+while [ -z "$(pgrep -f com.webos.app.fullhome)" ] && [ "$n" -lt 12 ]; do sleep 5; n=$((n+1)); done
+if [ -z "$(pgrep -f com.webos.app.fullhome)" ]; then
+  luna-send -n 1 luna://com.webos.applicationManager/launch '{"id":"com.webos.app.fullhome"}' >/dev/null 2>&1
+fi
+
+# Live-tested 2026-10-22 (bisect step A): the sam-kill variant of this tail was the
+# blank-screen culprit. Everything is still boot-volatile: delete and reboot to restore.

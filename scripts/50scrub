@@ -3,7 +3,8 @@
 # Install as /var/lib/webosbrew/init.d/50scrub (chmod 755; the name must not contain a dot,
 # or run-parts skips it). Every block is independent: delete the ones you don't want.
 # Everything here is volatile (re-applied each boot); to revert, delete this file and reboot.
-# UNTESTED ON HARDWARE: derived from static analysis of the firmware. See REPORT.md.
+# Live-tested on hardware 2026-10-22 (fw 04.63.20) across factory reset + rebuild. See
+# findings/cx_scrub_livestate.md.
 
 exec >>/tmp/50scrub.log 2>&1
 sleep 45   # let rest-boot-done, preload-manager and memchute settle
@@ -26,11 +27,23 @@ luna-send -n 1 luna://com.webos.service.settings/setSystemSettings \
 # (An earlier version capped maxPreloadApp at 2 here. That saves RAM but makes YouTube and Prime
 # cold-start every time; findings/launch.md section 3.)
 
-# --- Performance: drop debug-level log contexts (logs live in unswappable ramfs) ---
-for c in ls-hubd.debug ls-hubd.distinct acr ADMANAGER adoverlay-service IEPG lginput2 gmwl.dbg \
-         videooutputd webos-preload-manager NLPMANAGER VOICEFW ASSISTANT THINQAI CBOX.COMMON \
-         CBOX.DB CBOX.XPA btmngr webos-bluetooth-service MIRACAST legacy-log devmode; do
-  PmLogCtl set "$c" warning
+# --- Performance: drop debug-level log contexts (logs live in unswappable ramfs).
+# Full set enumerated live from /etc/pmlog.d on 04.63.20 (57 ship debug on
+# production, incl. ls-hubd.debug/distinct = every Luna bus message logged).
+# <default> deliberately excluded (system baseline). The same loop runs EARLIER
+# via /home/root/memchute_debug.sh to cover the boot window.
+for c in acr ADMANAGER adoverlay-service AMAZON-ALEXA-ADAPTER AMAZON-ALEXA-VSK \
+         ASC avmutemanager-log bluetooth-audio-sink bluetooth-audio-source \
+         bosp.logging bthidmanager CBOX.COMMON CGL cis capture DANGBEI-ADAPTER \
+         dmost.logging media.drmclient media.drmcontroller media.drmservice \
+         dtcp-ip EIM gibbs gmwl.error ASSISTANT hybridtv ICS IEPG IrDbManager \
+         jailer THINQAI lginput2 NDK2 LIVEPICK ls-hubd.debug ls-hubd.distinct \
+         MIRACAST MSS myservice.debug myservice2.debug myservice3.debug \
+         NLPMANAGER PBS PERFORMER pr.info REMOTEDIAG scd-service \
+         media.pipeline.ssplayer tts tvdataexchanger tvlinkcmdprocessor \
+         videooutputd-log VOICEFW voiceinput btmngr webos-preload-manager \
+         webos-sddp iot-client HOMEKIT legacy-log devmode; do
+  PmLogCtl set "$c" warning 2>/dev/null
 done
 
 # --- Privacy: these contexts log secrets at info level, and crash reports upload /var/log ---
@@ -47,17 +60,86 @@ rm -f /var/log/iot-client-log*
 #   dmost: reads the ad ID, LGUDID and MACs at every boot, but its service isn't offered in the US
 # Do NOT add memchute, sam, configd, surface-manager, WebAppMgr, db8*, settings-service,
 # second-screen-gateway or tvservicemock.
-for u in user-context-manager nudge rdxd uploadd iot-client webos-sddp dmost; do
-  systemctl stop "$u.service"; systemctl mask --runtime "$u.service"
+# webOS 5 NOTE (live-tested 2026-10-22): systemctl stop/mask HANGS on these units
+# (luna-managed static units; the systemd manager never answers). Don't use systemctl
+# here. Instead: blank each daemon's luna/dbus service file with /dev/null so ls-hubd
+# cannot launch it on demand, rescan, then pkill. systemd-boot-started daemons (PPID 1)
+# are simply killed here each boot; nothing relaunches them once their service files
+# are blank. Verified service file paths on 04.63.20.
+SVCFILES="
+/usr/share/dbus-1/system-services/com.webos.service.acr.service
+/usr/share/dbus-1/system-services/com.webos.service.admanager.service
+/usr/share/dbus-1/system-services/com.webos.service.adoverlay.service
+/usr/share/dbus-1/system-services/com.webos.service.dmost.service
+/usr/share/dbus-1/system-services/com.webos.service.iot-client.service
+/usr/share/dbus-1/system-services/com.webos.service.webos_sddp.service
+/usr/share/dbus-1/system-services/com.webos.app.livepick.service
+/usr/share/luna-service2/services.d/com.webos.service.livepick.service
+/usr/share/luna-service2/services.d/com.webos.service.nudge.service
+/usr/share/luna-service2/services.d/com.webos.service.usercontextmanager.service
+/usr/share/luna-service2/services.d/com.webos.service.sportsalarm.service
+/usr/share/luna-service2/services.d/com.webos.rdxd.service
+/usr/share/luna-service2/services.d/com.palm.uploadd.service
+/usr/share/luna-service2/services.d/com.webos.service.voiceconductor.service
+/usr/share/luna-service2/services.d/com.webos.service.voiceinput.service
+/usr/share/luna-service2/services.d/com.webos.service.voice.performer.plugin.service
+/usr/share/luna-service2/services.d/amazon.alexa.adapter.plugin.service
+/usr/share/luna-service2/services.d/amazon.alexa.adapter.vsk.service
+/usr/share/luna-service2/services.d/google.assistant.adapter.plugin.service
+/usr/share/dbus-1/system-services/com.webos.app.voice.service
+/usr/share/dbus-1/system-services/com.webos.service.update.service
+/usr/share/dbus-1/system-services/com.webos.service.membership.service
+/usr/share/dbus-1/system-services/com.webos.service.tvdataexchanger.service
+"
+for f in $SVCFILES; do
+  [ -f "$f" ] && mount --bind /dev/null "$f"
 done
-# sportsalarm (sports alerts) has no systemd unit: ls-hubd starts it on demand from its luna service
-# file, so blank that file for this boot instead.
-f=/usr/share/luna-service2/services.d/com.webos.service.sportsalarm.service
-[ -f "$f" ] && mount --bind /dev/null "$f" && ls-control scan-services
-pkill -x sportsalarm
+ls-control scan-services
+# systemd-started daemons: runtime-mask FIRST (instant, live-proven 2026-10-22: mask returns
+# in ms and /usr/sbin/update stayed dead after pkill; only systemctl STOP hangs on this box).
+# Masking before the kill loop prevents the respawn loop (update-respawned) and the
+# boot-done race that let nudge survive.
+for u in update user-context-manager nudge rdxd uploadd iot-client webos-sddp dmost \
+         contentminer aiservice second-screen-gateway tvlink-network-proxy \
+         broadcast-conf-downloader bugreportd com.webos.app.multiview; do
+  systemctl mask --runtime "$u.service" >/dev/null 2>&1
+done
+for p in user-context-manager nudge rdxd uploadd iot-client webos-sddp dmost \
+         sportsalarm acr2 admanager adoverlay-service livepick \
+         voiceconductor voiceinput nlpmanager amazon-alexa-adapter amazon-alexa-vsk \
+         google-assistant-adapter lg.thinqai.adapter update membership tvdataexchanger \
+         second-screen-gateway tvlink-network-proxy broadcast-conf-downloader bugreportd; do
+  # pkill -x fails silently for names longer than the 15-char comm truncation
+  # ("adoverlay-service", "user-context-manager"): match the full path too.
+  pkill -x "$p" 2>/dev/null
+  pkill -f "/usr/sbin/$p"
+done
+# nudge systemd-starts at boot-done BEFORE this script's mask lands, and ignores
+# SIGTERM (live-observed twice). One targeted SIGKILL; masks prevent future starts.
+pkill -9 -x nudge 2>/dev/null
+pkill -f iot-client-webos/ocf_memcheck.sh
+pkill -f "systemctl [s]top"; pkill -f "systemctl [m]ask"
 
-# --- Privacy: kill the ACR / ad overlay stack for this boot ---
-pkill -f /usr/sbin/acr2; pkill -f adoverlay-service; pkill -f livepick-plus; pkill -x admanager
+# --- Firmware-update modal kill (findings from fw/cx_04.63.25 static analysis, 2026-10-22) ---
+# The NSU alert modal is created by the D-Bus-activated /usr/sbin/update daemon after a
+# check reaches nsu.lge.com:5100 / snu.lge.com, with a hardcoded-IP fallback 156.147.69.32.
+# The EARLY layer is the iptables REJECT in /home/root/memchute_debug.sh (fires before the
+# check window); this block re-arms it (volatile) and the hosts block below adds nsu/snu
+# belt once /etc/hosts is bind-mounted writable.
+iptables -I OUTPUT -d 156.147.69.32 -j REJECT >/dev/null 2>&1 || \
+  iptables -I OUTPUT -d 156.147.69.32 -j DROP >/dev/null 2>&1
+
+# --- Privacy: withdraw ACR/ad consent at the settings level (findings/acr.md section 3) ---
+# Without eulaStatus.acrOnAllowed acr2 is required to terminate and nothing re-arms capture.
+# generalTermsAllowed stays true so the LG Content Store and apps keep working.
+luna-send -n 1 luna://com.webos.service.settings/setSystemSettings \
+  '{"category":"eulaStatus","settings":{"acrOnAllowed":false,"acrAdAllowed":false,"additionalDataAllowed":false,"customAdAllowed":false,"marketingOnAllowed":false}}'
+
+# Belt and braces: bind /dev/null over the downloaded ACR config, so even a relaunched acr2
+# finds no solution_lib plugin to dlopen and any sdx re-download writes to /dev/null
+# (findings/acr.md section 5). [INF] from static analysis; harmless either way.
+: > /mnt/lg/cmn_data/acr.xml
+mount --bind /dev/null /mnt/lg/cmn_data/acr.xml
 
 # --- Performance: zram swap-in latency and reclaim headroom ---
 echo 0 > /proc/sys/vm/page-cluster        # stock 3
@@ -77,7 +159,7 @@ if [ "$PIN_SDX_DOMAINS" = 1 ] && [ -f /mnt/lg/cmn_data/sdp/sdx/server_addr_versi
 fi
 # Block LG Remote Service (remote screen capture, key injection and log pull by LG support) from
 # being started on demand for this boot.
-BLOCK_REMOTEDIAG=0
+BLOCK_REMOTEDIAG=1
 if [ "$BLOCK_REMOTEDIAG" = 1 ]; then
   for f in /usr/share/dbus-1/system-services/com.webos.service.remotediag.service \
            /usr/share/dbus-1/services/com.webos.service.remotediag.service; do
@@ -85,3 +167,50 @@ if [ "$BLOCK_REMOTEDIAG" = 1 ]; then
   done
   ls-control scan-services; pkill -x remotediag
 fi
+
+# --- Privacy: DNS-block the ad/ACR/telemetry vendors (findings/acr.md section 5) ---
+# Appends to the already-bind-mounted /etc/hosts (webosbrew startup.sh mounts /tmp/hosts over
+# it when the OTA block flag is set). Do NOT block *.lgtvsdp.com - the store, apps and sdx
+# authentication need it. Idempotent across manual reruns.
+HOSTS_MARK="# webosbrew-adhost-block"
+if ! grep -q "$HOSTS_MARK" /etc/hosts; then
+  {
+    echo "$HOSTS_MARK"
+    echo "127.0.0.1 prov-lg.alphonso.tv eulacheck.alphonso.tv config-overlay-ads.alphonso.tv nsu.lge.com"
+    echo "127.0.0.1 info.lgsmartad.com aic-ngfts.lge.com qt2-ngfts.lge.com"
+    echo "127.0.0.1 aic.videoacr.lgtvcommon.com aic.fooddelivery.lgtvcommon.com"
+    echo "::1 prov-lg.alphonso.tv eulacheck.alphonso.tv config-overlay-ads.alphonso.tv nsu.lge.com"
+    echo "::1 info.lgsmartad.com aic-ngfts.lge.com qt2-ngfts.lge.com"
+    echo "::1 aic.videoacr.lgtvcommon.com aic.fooddelivery.lgtvcommon.com"
+  } >> /etc/hosts
+fi
+
+# --- Wake latency: trim the instant-boot wake burst (findings/performance.md 1.2) ---
+# instant-boot-done fires on EVERY Quick Start+ wake and systemctl-starts aiservice,
+# com.webos.app.livemenu and com.webos.app.multiview while the user is first moving
+# through the UI. Bind an edited copy without those three (keep settings-service-recovery).
+# The bind survives suspend, so later wakes use the trimmed unit.
+WAKE_UNIT=/etc/systemd/system/instant-boot-done.service
+if [ -f "$WAKE_UNIT" ]; then
+  grep -v -E "aiservice|livemenu|multiview" "$WAKE_UNIT" > /tmp/instant-boot-done.trimmed
+  mount --bind /tmp/instant-boot-done.trimmed "$WAKE_UNIT"
+fi
+
+# --- Boot/wake cost: drop voice from the preload policy (persistent file) ---
+# /var/preferences/webos-preload-manager-conf.json is the persistent user override the
+# preload manager reads; stock allows com.webos.app.voice. Without this the preload
+# manager keeps re-launching the voice webapp even with its daemons dead. Amazon/Prime,
+# airplay, livetv, hdmi and both homes stay allowed.
+PRELOAD_CONF=/var/preferences/webos-preload-manager-conf.json
+if [ -f "$PRELOAD_CONF" ] && grep -q '"com.webos.app.voice":true' "$PRELOAD_CONF"; then
+  sed 's/"com.webos.app.voice":true,//' "$PRELOAD_CONF" > /tmp/preload.conf.new
+  cp /tmp/preload.conf.new "$PRELOAD_CONF"
+  pkill -x webos-preload-manager 2>/dev/null
+fi
+
+# NOTE 2026-10-22: a detached pkill -9 re-kill pass and an appUpdateService activity
+# blank were tried here and CORRELATED WITH A FULL BOX HANG on their first boot
+# (hard freeze, no ping; both removed pending bisection). nudge survives the main
+# kill pass when systemd starts it late; its aiNudge setting is forced "off" above,
+# leaving it inert. Do not re-add -9 passes or activity-file blanks without
+# re-testing on hardware.
